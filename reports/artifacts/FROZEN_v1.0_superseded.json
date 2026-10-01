@@ -1,0 +1,9 @@
+{
+ "version": "1.0",
+ "frozen_utc": "2026-10-01T21:11:48",
+ "sha256": {
+  "scorecard.json": "759cfc3a784db03e1bfadd4ec0d3a1b8a162f5520dfb562f788359ed49732091",
+  "lgbm.txt": "55021c8c11183a4fb59bbfcbad4dc2203645fa0899dbeb12e478999305372d79",
+  "lgbm_meta.json": "7caabae26b961ba0e6fb25554027253feb8d37340ccffe617c3406a34a1417c1"
+ }
+}

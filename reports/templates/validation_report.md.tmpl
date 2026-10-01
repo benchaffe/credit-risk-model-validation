@@ -1,0 +1,217 @@
+# Independent Validation Report: Mortgage 24-Month PD Models (v{version})
+
+Reviewer: Benjamin (independent in role only: the same person built the models, see limitation L1) · Models validated: scorecard (champion) and LightGBM (challenger), frozen as v{version} on {frozen_date} (`reports/artifacts/FROZEN.json`)
+
+*All numbers in this report are generated from `reports/tables/` by `src/build_report.py`; do not edit them by hand.*
+
+---
+
+## 0. Executive summary
+
+**Decision: approved with conditions, for rank-ordering in benign conditions only. Not approved for absolute PD, provisioning or capital use.**
+
+Both models rank borrowers well (hold-out AUC {auc_ho_s:.2f} scorecard, {auc_ho_l:.2f} LightGBM). Out of time they keep ranking reasonably (AUC about {auc_cr_s:.2f}), but their predicted default rates are far too low.
+
+Top three findings:
+1. **Severe under-prediction in the crisis (F1, High).** For 2006-08 originations the models predict {pred_cr_s:.1f}-{pred_cr_l:.1f}% against {obs_cr:.1f}% observed ({ratio_cr_s:.1f}x scorecard, {ratio_cr_l:.1f}x LightGBM). All {bands_under_cr} of {bands_total} score bands are under-predicted. In 2005 the gap is already {ratio_oot_s:.1f}x and {ratio_oot_l:.1f}x.
+2. **The error is concentrated (F2, High).** California loans are under-predicted {seg_state_CA:.0f}x, Nevada {seg_state_NV:.0f}x, Arizona {seg_state_AZ:.0f}x and Florida {seg_state_FL:.0f}x, and broker-channel loans {seg_channel_B:.0f}x. One margin of conservatism would be too much for some segments and too little for others.
+3. **Input drift (F3, High).** Interest rate PSI is {psi_int_rate_cr:.1f} in the crisis and {psi_int_rate_rec:.1f} in 2016-19, and the scorecard's own score distribution shifts sharply in 2016-19 (PSI {psi_pd_scorecard_rec:.2f}). In that period the scorecard under-predicts {ratio_rec_s:.1f}x and LightGBM {ratio_rec_l:.2f}x.
+
+Conditions: (a) use only to rank or tier, not to estimate PD; (b) apply a conservatism margin or recalibrate on stressed data before any PD use; (c) monitor PSI and calibration quarterly (Section 10); (d) redevelop if the triggers in Section 10 fire.
+
+---
+
+## 1. Scope and model overview
+
+**Question.** Is a probability-of-default model trained on 1999-2004 Freddie Mac originations fit for use as a 24-month PD for prime fixed-rate mortgages, and how does it behave in conditions it did not see?
+
+**Models.** Champion: weight-of-evidence logistic scorecard, {n_features_sc} features, scaled to 600 points at 50:1 odds. Challenger: LightGBM, {n_inputs_lg} inputs, tuned inside 1999-2004 with time-aware folds. Detail is in `reports/model_development.md`.
+
+**Materials reviewed.** Development document; frozen model files and hashes; Freddie Mac sample files (14 vintages, 50,000 loans each) with the July 2026 File Layout and User Guide; code in `src/`. Model tier: this report assumes high materiality for a mortgage book.
+
+**Samples.** Train {n_tr:,} loans ({bad_tr:.2f}% bad), hold-out {n_ho:,} ({bad_ho:.2f}%), 2005 {n_oot:,} ({bad_oot:.2f}%), crisis 2006-08 {n_cr:,} ({bad_cr:.2f}%), recent 2016-19 {n_rec:,} ({bad_rec:.2f}%).
+
+**Model version history.** {freeze_reason}
+
+---
+
+## 2. Conceptual soundness
+
+**Target.** 90+ days delinquent, REO, or a credit-event exit (zero-balance codes 02, 03, 09, 15) within 24 months. A 24-month window suits mortgages, where early defaults are rare. Two judgement calls need owner sign-off: counting code 15 (whole-loan sales) as default, and the COVID adjustment below.
+
+**COVID adjustment.** Without it, most 2018 and 2019 "bad" loans are pandemic forbearance, not credit defaults:
+
+{tbl_covid}
+
+After excluding forbearance and disaster-flagged delinquencies, 2018 and 2019 fall to {cv2018_adj:.2f}% and {cv2019_adj:.2f}%. The adjustment is reasonable but is a modelling choice, and conclusions for 2016-19 depend on it.
+
+**Censoring.** Loans that prepay cannot default afterwards, so the 24-month bad rate is not a lifetime default rate and understates risk for fast-prepaying vintages. A discrete-time hazard model would address this; it was not built.
+
+**Leakage.** Features come only from the origination file, and a test (`tests/test_leakage.py`) fails if any performance-file field is used as a feature. The scorecard's hold-out AUC ({auc_ho_s:.3f}) is not below train ({auc_tr_s:.3f}), which is not a leakage signature but means the hold-out gave no evidence of overfitting.
+
+**Feature rationale.** Credit score, LTV, DTI, rate and MI % are standard drivers. Number of borrowers (IV {iv_n_borrowers:.2f}) and state (IV {iv_state:.2f}) are unusually influential. Borrower count is plausibly a household-income proxy, which is a hypothesis I did not test. State is covered in Section 9.
+
+**Assumption that failed.** The central assumption, that relationships learned in a benign 1999-2004 period hold elsewhere, does not survive the crisis (Sections 5 and 6). The models have no house-price or macro input, so they cannot respond to the cycle by design.
+
+---
+
+## 3. Data quality and representativeness
+
+- **Placeholders.** Credit score 9999 ({fico_miss:.1f}% of loans) and DTI 999 ({dti_miss:.1f}%) and similar codes were set to missing. Missingness is low overall.
+- **Sampling.** Freddie's sample files are 50,000 random loans per year, so the models see {n_total:,} loans. About {bads_train:,} bad loans in training is adequate for the scorecard but thin for gradient boosting.
+- **Small bins.** The smallest retained scorecard bin is {tiny_feat} = {tiny_bin}: {tiny_n} loans, {tiny_rate:.0f}% bad. Its weight is unreliable.
+- **Population drift.** See the PSI table in Section 10. Drift is mild in 2005, material for rate and balance in the crisis, and large in 2016-19. Channel PSI of {psi_channel_rec:.1f} reflects a structural change: correspondent and broker loans are {chan_dev_C:.1f}% and {chan_dev_B:.1f}% of the development data but {chan_rec_C:.0f}% and {chan_rec_B:.0f}% of 2016-19 loans, so the scorecard has almost no history on them.
+- **Reject inference.** The data contains accepted loans only. The models say nothing about rejected applicants; any application-scoring use would need reject inference, which was not done.
+- **Single source.** All loans are Freddie Mac conforming loans. Results do not generalise to jumbo, subprime or non-agency books.
+
+---
+
+## 4. Ranking power
+
+{tbl_ranking}
+
+**Assessment.** Ranking is acceptable for tiering. LightGBM beats the scorecard by {auc_diff_oot:.3f} AUC in 2005 and {auc_diff_cr:.3f} in the crisis; the intervals overlap in 2005 but not in the crisis. In 2016-19 the two are indistinguishable. A gain this small does not justify the explainability and monotonicity cost (Sections 7 and 8). LightGBM also overfits more: its train-to-hold-out AUC gap is {gap_l:.3f}, against {gap_s:.3f} for the scorecard.
+
+![Calibration by band](figures/calibration_by_band.png)
+
+---
+
+## 5. Calibration
+
+{tbl_calib}
+
+(S = scorecard, L = LightGBM.)
+
+- **In time**, both models are close to calibrated: ratio {ratio_ho_s:.2f} and {ratio_ho_l:.2f}. The binomial test is borderline (p = {p_ho_s:.3f} and {p_ho_l:.3f}), and {bands_off_ho} of {bands_total} hold-out bands are flagged. The random 70/30 split put slightly more bad loans in the hold-out than in train; this is sampling variation, not a model defect, but it shows the hold-out is not a perfect baseline.
+- **Out of time**, every sample fails calibration significantly (p < 0.001), always in the same direction: **under-prediction**. The closest case, LightGBM on 2016-19, is still {ratio_rec_l:.2f}x.
+- **By band**, in the crisis all {bands_under_cr} scorecard bands under-predict, from {band1_pred:.2f}% predicted against {band1_obs:.2f}% observed in the safest band to {band10_pred:.1f}% against {band10_obs:.1f}% in the riskiest. The failure covers the whole range, not only the tail.
+- **Direction.** The risk is one-sided: the models are optimistic when conditions worsen.
+
+---
+
+## 6. Out-of-time and crisis testing
+
+| Change from hold-out | 2005 | 2006-08 | 2016-19 |
+|---|---|---|---|
+| Scorecard AUC change | -{dauc_oot_s:.3f} | -{dauc_cr_s:.3f} | -{dauc_rec_s:.3f} |
+| LightGBM AUC change | -{dauc_oot_l:.3f} | -{dauc_cr_l:.3f} | -{dauc_rec_l:.3f} |
+| Observed bad rate vs hold-out | {badx_oot:.1f}x | {badx_cr:.1f}x | {badx_rec:.1f}x |
+| Scorecard obs ÷ pred | {ratio_oot_s:.1f} | {ratio_cr_s:.1f} | {ratio_rec_s:.1f} |
+| LightGBM obs ÷ pred | {ratio_oot_l:.1f} | {ratio_cr_l:.1f} | {ratio_rec_l:.1f} |
+
+Ranking degrades by roughly 0.05-0.07 AUC in every out-of-time sample, so discrimination is fairly robust. Calibration is not. In the recent regime the observed rate ({obs_rec:.2f}%) is lower than in development ({obs_ho:.2f}%), yet the scorecard still under-predicts, because the population moved toward what the model reads as safer: the mean interest rate fell from {rate_dev_mean:.2f}% to {rate_rec_mean:.2f}% (development minimum {rate_dev_min:.2f}%) and channel mix changed. Its mean PD for the period is {pred_rec_s:.2f}% against {obs_rec:.2f}% observed. The rate and channel effects are extrapolation, not evidence of lower risk.
+
+**Worst-case segments in the crisis (scorecard, at least 1,000 loans).** Broker and correspondent loans are almost absent from the development data, so their gaps partly reflect a segment the model never saw.
+
+{tbl_segments}
+
+The best-calibrated states are {best_state1} ({best_state1_r:.1f}x) and {best_state2} ({best_state2_r:.1f}x). The worst are the boom-and-bust housing markets; the models carry no regional price signal.
+
+---
+
+## 7. Sensitivity and stress
+
+Input shocks applied to hold-out and crisis loans (hold-out / crisis):
+
+{tbl_stress}
+
+- The scorecard moves the right way for every shock on every loan, by construction of its monotone binning.
+- LightGBM is right on average but **non-monotone for individual loans**: a higher interest rate lowers PD for {wrong_rate_l_ho:.0f}% of hold-out and {wrong_rate_l_cr:.0f}% of crisis loans, and a better credit score raises PD for {wrong_fico_up_l_ho:.0f}%. This would not pass a conduct or adverse-action review.
+- Neither model is stress-sensitive in the sense that matters. Shocks to borrower attributes move PD by tens of percent, nowhere near the {badx_cr:.1f}x rise in actual crisis defaults, because the crisis was a macro shock the models cannot see.
+
+---
+
+## 8. Explainability
+
+![SHAP importance](figures/shap_importance.png)
+![Partial dependence](figures/partial_dependence.png)
+
+- **LightGBM.** SHAP ranks {shap1_name} first ({shap1:.2f}), then {shap2_name} ({shap2:.2f}), {shap3_name} ({shap3:.2f}), {shap4_name} ({shap4:.2f}) and {shap5_name} ({shap5:.2f}). Partial dependence for credit score, LTV and DTI is smooth and in the expected direction. Number of borrowers has only two values, so its curve is a straight line.
+- **Scorecard.** Each loan gets reason codes from points lost against the best bin. Across hold-out loans the most frequent top-three reason is {rc_top1} ({rc_top1_v:.0f}% of reasons), followed by credit score ({rc_fico:.0f}%), LTV ({rc_ltv:.0f}%) and number of borrowers ({rc_n_borrowers:.0f}%). These can support adverse-action explanations. That state tops the list is a concern (Section 9).
+- **Agreement.** The two models' PDs correlate at {rho_score:.2f} (Spearman), but their feature rankings agree only moderately ({rho_driver:.2f}).
+
+Overall the scorecard is the more explainable and defensible model.
+
+---
+
+## 9. Fairness and conduct risk
+
+**What the data allows.** The dataset has no race, ethnicity, sex or age fields, so protected-characteristic fairness **cannot be tested**. Only proxies were examined: state, borrower count, first-time-buyer status, channel and occupancy.
+
+**Results (scorecard, observed ÷ predicted).**
+
+{tbl_fair}
+
+On hold-out the groups are within about 0.75-1.3 of calibrated; investor loans are the largest gap ({fair_occupancy_I_ho:.2f}, CI {fair_occupancy_I_ho_lo:.2f}-{fair_occupancy_I_ho_hi:.2f}). In the crisis every group is badly under-predicted, but unevenly: for example first-time buyers {fair_first_time_buyer_Y_cr:.1f}x against {fair_first_time_buyer_N_cr:.1f}x for others, and investor loans {fair_occupancy_I_cr:.1f}x against {fair_occupancy_P_cr:.1f}x for owner-occupiers. State and channel differences are much larger (Section 6).
+
+**Interpretation.** State ranks number {shap_rank_state} of the LightGBM features by SHAP and appears in the scorecard. Geography can act as a proxy for protected characteristics, and the data cannot show whether it does. For UK use this engages the Equality Act 2010 (indirect discrimination) and the FCA Consumer Duty (fair outcomes). **This validation cannot say the models are fair; it can only say that no large disparity was found on the few proxies available.** Before any use, test with protected-characteristic data or a defensible proxy method, and consider removing state.
+
+---
+
+## 10. Ongoing monitoring plan
+
+**Population stability (PSI against development train).**
+
+{tbl_psi}
+
+PSI says the population moved; it does not say performance degraded. In 2006-08 the score PSI is {psi_pd_scorecard_cr:.2f} while calibration fails by {ratio_cr_s:.1f}x, so PSI alone would have missed the crisis.
+
+**Proposed triggers.**
+- PSI on score: below 0.10 normal; 0.10-0.25 investigate; above 0.25 escalate. Same thresholds for key features.
+- Calibration (quarterly, on loans reaching 24 months): observed ÷ predicted outside 0.8-1.25 overall, or any band significantly outside its binomial interval, triggers review; outside 0.67-1.5 triggers recalibration.
+- Early warning: 12-month default rate and 30-day delinquency by origination quarter against model, because the 24-month outcome arrives too late.
+- Review frequency: quarterly monitoring, annual full revalidation, ad hoc on rate moves above 200 bp or house price falls above 5%.
+- Redevelopment: AUC below 0.70, calibration trigger breached for two consecutive quarters, or a population change such as a new product or channel.
+
+---
+
+## 11. Findings log
+
+| ID | Severity | Area | Finding | Evidence | Recommended action | Owner | Status |
+|---|---|---|---|---|---|---|---|
+| F1 | High | Calibration | Predicted PD far below observed default in 2006-08 ({ratio_cr_s:.1f}x scorecard, {ratio_cr_l:.1f}x LightGBM) and 2005 ({ratio_oot_s:.1f}x, {ratio_oot_l:.1f}x), across all bands | Section 5 | No absolute-PD use. Add margin of conservatism or recalibrate on stressed data (for example include 2006-08 vintages) | Model owner | Open |
+| F2 | High | Segments | Under-prediction concentrated in CA ({seg_state_CA:.0f}x), NV, AZ, FL and the broker channel ({seg_channel_B:.0f}x) | Section 6 | Add regional house-price or unemployment input, or segment overlays | Model owner | Open |
+| F3 | High | Stability | Rate, balance and channel mix shift heavily in 2016-19; scorecard under-predicts the recent period ({ratio_rec_s:.1f}x) | Section 10 | Cap or remove rate and balance effects; recalibrate; monitor PSI | Model owner | Open |
+| F4 | High | Fairness | No protected-characteristic data; state is a high-impact feature and may be a proxy | Section 9 | Obtain protected-characteristic data or run proxy analysis; consider removing state | Model owner / Compliance | Open |
+| F5 | Medium | Challenger | LightGBM non-monotone: wrong direction for up to {wrong_rate_l_cr:.0f}% of loans on some shocks | Section 7 | Apply monotone constraints before any use | Model owner | Open |
+| F6 | Medium | Conceptual | Target depends on judgement calls (COVID adjustment, code 15); censoring from prepayment | Section 2 | Document and sensitivity-test; consider a hazard model | Model owner | Open |
+| F7 | Medium | Data | Sample files only; about {bads_train:,} bad loans in training; tiny bins ({tiny_feat} {tiny_bin}: {tiny_n} loans) | Section 3 | Re-estimate on full vintages; merge small bins | Model owner | Open |
+| F8 | Medium | Monitoring | PSI missed the crisis (score PSI {psi_pd_scorecard_cr:.2f} in 2006-08 while calibration failed {ratio_cr_s:.1f}x) | Section 10 | Monitor calibration as well as PSI | Monitoring | Open |
+| F9 | Low | Scope | No reject inference; accepted loans only | Section 3 | State limit of use; reject inference if used for origination | Model owner | Open |
+| F10 | Low | Governance | Developer and validator are the same person; model v1.0 was not reproducible and was replaced by v{version} | Section 1, limitations | Independent second review | Governance | Open |
+
+---
+
+## 12. Conclusion
+
+**Approved with conditions.** The models are fit to rank-order borrowers by default risk in benign conditions. They are **not** fit to estimate absolute PD, to set provisions or capital, or to be used in a downturn without recalibration: they under-predicted the crisis by about {ratio_cr_s:.0f}x and fail calibration in every out-of-time sample.
+
+**Limits of use.** Prime fixed-rate conforming mortgages; accepted applicants only; 24-month horizon; ranking and tiering only.
+
+**Conditions.** F1-F4 must be remediated or formally accepted before any PD use. Recommended champion: the scorecard, because it is monotone, explainable and ranks almost as well. LightGBM should be retained as a challenger only.
+
+**Limitations of this review.**
+- **L1.** The developer and validator are the same person. This breaks the independence a real validation requires, so the findings should be read as a self-review.
+- **L2.** Sample files, not full vintages.
+- **L3.** Results depend on the target definition and the COVID adjustment.
+- **L4.** No model was changed after seeing validation performance. The v1.0 to v{version} change was made only to fix a reproducibility bug (row order affecting the random split) and all numbers were regenerated.
+
+---
+
+## Appendix A: Mapping to PRA SS1/23
+
+Per the PRA's published page (checked 1 Oct 2026), SS1/23 has five principles and its current version is dated 23 April 2026. It formally applies to UK banks, building societies and PRA-designated investment firms with internal model approval for capital (IRB, IMA, IMM); this project uses it as good practice, not as a compliance claim. Check the wording against the PRA page before quoting.
+
+| SS1/23 principle | Where addressed | Gap |
+|---|---|---|
+| 1. Model identification and risk classification | Section 1 (high materiality assumed) | No model inventory or tiering methodology |
+| 2. Governance | Section 12 and the findings log | One person fills every role; no committee or approval route |
+| 3. Model development, implementation and use | Section 2, development document, Section 7 | No production implementation tested |
+| 4. Independent model validation | Sections 2-9 | Validator is not independent (L1) |
+| 5. Model risk mitigants | Conditions, margin of conservatism (F1), limits of use | No overlay or buffer has been calibrated |
+
+Ongoing monitoring (Section 10) is not a separate principle in the five-principle list above. I have not located the exact paragraph it falls under and have not mapped it to numbered expectations.
+
+## Appendix B: Reproducibility
+
+`make all` regenerates every table in `reports/tables/`, every figure in `reports/figures/` and the numbers in this document, with fixed seeds, and fails if the models differ from the frozen version.

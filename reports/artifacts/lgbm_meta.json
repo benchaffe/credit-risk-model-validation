@@ -1,0 +1,154 @@
+{
+ "best_params": {
+  "num_leaves": 8,
+  "min_child_samples": 200,
+  "learning_rate": 0.05,
+  "n_estimators": 300
+ },
+ "cv": [
+  {
+   "params": {
+    "num_leaves": 8,
+    "min_child_samples": 200,
+    "learning_rate": 0.05,
+    "n_estimators": 300
+   },
+   "cv_auc": 0.8421981321727575
+  },
+  {
+   "params": {
+    "num_leaves": 16,
+    "min_child_samples": 200,
+    "learning_rate": 0.05,
+    "n_estimators": 300
+   },
+   "cv_auc": 0.8406835896723289
+  },
+  {
+   "params": {
+    "num_leaves": 16,
+    "min_child_samples": 500,
+    "learning_rate": 0.03,
+    "n_estimators": 500
+   },
+   "cv_auc": 0.8399767702304443
+  },
+  {
+   "params": {
+    "num_leaves": 31,
+    "min_child_samples": 500,
+    "learning_rate": 0.03,
+    "n_estimators": 500
+   },
+   "cv_auc": 0.8353547149367774
+  }
+ ],
+ "category_levels": {
+  "first_time_buyer": [
+   "N",
+   "UNK",
+   "Y"
+  ],
+  "occupancy": [
+   "I",
+   "P",
+   "S"
+  ],
+  "channel": [
+   "B",
+   "C",
+   "R",
+   "T",
+   "UNK"
+  ],
+  "loan_purpose": [
+   "C",
+   "N",
+   "P",
+   "UNK"
+  ],
+  "property_type": [
+   "CO",
+   "CP",
+   "MH",
+   "PU",
+   "SF",
+   "UNK"
+  ],
+  "state": [
+   "AK",
+   "AL",
+   "AR",
+   "AZ",
+   "CA",
+   "CO",
+   "CT",
+   "DC",
+   "DE",
+   "FL",
+   "GA",
+   "GU",
+   "HI",
+   "IA",
+   "ID",
+   "IL",
+   "IN",
+   "KS",
+   "KY",
+   "LA",
+   "MA",
+   "MD",
+   "ME",
+   "MI",
+   "MN",
+   "MO",
+   "MS",
+   "MT",
+   "NC",
+   "ND",
+   "NE",
+   "NH",
+   "NJ",
+   "NM",
+   "NV",
+   "NY",
+   "OH",
+   "OK",
+   "OR",
+   "PA",
+   "PR",
+   "RI",
+   "SC",
+   "SD",
+   "TN",
+   "TX",
+   "UT",
+   "VA",
+   "VI",
+   "VT",
+   "WA",
+   "WI",
+   "WV",
+   "WY"
+  ]
+ },
+ "features": [
+  "fico",
+  "ltv",
+  "cltv",
+  "dti",
+  "mi_pct",
+  "orig_upb",
+  "int_rate",
+  "n_units",
+  "n_borrowers",
+  "fico_missing",
+  "dti_missing",
+  "first_time_buyer",
+  "occupancy",
+  "channel",
+  "loan_purpose",
+  "property_type",
+  "state"
+ ]
+}

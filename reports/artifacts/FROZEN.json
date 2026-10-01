@@ -1,0 +1,10 @@
+{
+ "version": "1.1",
+ "reason": "v1.0 was not reproducible: DuckDB row order changed the seeded 70/30 split between runs. Fixed by sorting on loan_identifier before the split. Models refit unchanged otherwise. Done for reproducibility, not performance; v1.0 model files could not be recovered.",
+ "frozen_utc": "2026-10-01T21:29:50",
+ "sha256": {
+  "scorecard.json": "f6f339be20bde55d843da34b8aee431042661db108248bb0f6e3c72b9f2c171a",
+  "lgbm.txt": "9ecc9c94044a0958b639e2f13f2f1a9d03068310b00d55ea8e8fe940a9639bbb",
+  "lgbm_meta.json": "535a2608a7397f1577f84028137630cbd94ec7fc5a0ac68734f494762ce6e529"
+ }
+}

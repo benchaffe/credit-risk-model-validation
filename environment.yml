@@ -1,0 +1,16 @@
+name: credit-risk-validation
+channels: [conda-forge]
+dependencies:
+  - python=3.11
+  - pandas
+  - pyarrow
+  - duckdb
+  - numpy
+  - scikit-learn
+  - statsmodels
+  - lightgbm
+  - shap
+  - matplotlib
+  - scipy
+  - pytest
+  - jupyter

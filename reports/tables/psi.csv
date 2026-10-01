@@ -1,0 +1,77 @@
+variable,sample,psi,flag
+pd_scorecard,dev_holdout,0.00011499012244046633,stable
+pd_scorecard,out_of_time,0.005847347556749889,stable
+pd_scorecard,crisis,0.004736201331757855,stable
+pd_scorecard,recent,0.5225455125199499,significant shift
+pd_lgbm,dev_holdout,9.717950215854577e-05,stable
+pd_lgbm,out_of_time,0.004920031727878143,stable
+pd_lgbm,crisis,0.002990870167473826,stable
+pd_lgbm,recent,0.16774985255774555,moderate shift
+fico,dev_holdout,0.0001528933566591116,stable
+fico,out_of_time,0.047866373204134234,stable
+fico,crisis,0.08059923573810013,stable
+fico,recent,0.30748435250510364,significant shift
+ltv,dev_holdout,0.0001041031552508988,stable
+ltv,out_of_time,0.024634460019716253,stable
+ltv,crisis,0.01798009861756366,stable
+ltv,recent,0.1318913715221688,moderate shift
+cltv,dev_holdout,0.00013996950654483254,stable
+cltv,out_of_time,0.007898205581175714,stable
+cltv,crisis,0.035704304261735806,stable
+cltv,recent,0.10414409262096846,moderate shift
+dti,dev_holdout,0.00016567886456363132,stable
+dti,out_of_time,0.06311444153059971,stable
+dti,crisis,0.11854622099283922,moderate shift
+dti,recent,0.18587208886897144,moderate shift
+mi_pct,dev_holdout,4.833301722034413e-07,stable
+mi_pct,out_of_time,0.00782814589835238,stable
+mi_pct,crisis,0.0011445166522698579,stable
+mi_pct,recent,0.10913309484697721,moderate shift
+orig_upb,dev_holdout,0.00011817664250365865,stable
+orig_upb,out_of_time,0.15359128800939964,moderate shift
+orig_upb,crisis,0.28985474371577286,significant shift
+orig_upb,recent,0.8746493441075738,significant shift
+int_rate,dev_holdout,0.00030695802643754825,stable
+int_rate,out_of_time,2.6224534622483797,significant shift
+int_rate,crisis,1.4480004702121896,significant shift
+int_rate,recent,6.574123081041538,significant shift
+n_units,dev_holdout,3.9174293182646024e-11,stable
+n_units,out_of_time,3.283280684480354e-10,stable
+n_units,crisis,1.453128704044461e-09,stable
+n_units,recent,1.453128704044461e-09,stable
+n_borrowers,dev_holdout,1.637593196928488e-05,stable
+n_borrowers,out_of_time,0.01390365985202368,stable
+n_borrowers,crisis,0.04977514793594473,stable
+n_borrowers,recent,0.12036664471666525,moderate shift
+fico_missing,dev_holdout,0.0,stable
+fico_missing,out_of_time,0.0,stable
+fico_missing,crisis,0.0,stable
+fico_missing,recent,0.0,stable
+dti_missing,dev_holdout,0.0,stable
+dti_missing,out_of_time,0.0,stable
+dti_missing,crisis,0.0,stable
+dti_missing,recent,0.0,stable
+first_time_buyer,dev_holdout,4.9568520359656965e-05,stable
+first_time_buyer,out_of_time,0.005325557929719212,stable
+first_time_buyer,crisis,0.016360561088490332,stable
+first_time_buyer,recent,0.16367051919573852,moderate shift
+occupancy,dev_holdout,7.423944641981278e-05,stable
+occupancy,out_of_time,0.007113320433584265,stable
+occupancy,crisis,0.020259400769449584,stable
+occupancy,recent,0.029221504484723937,stable
+channel,dev_holdout,2.105996548886812e-05,stable
+channel,out_of_time,0.00824934905025186,stable
+channel,crisis,0.48882340440768524,significant shift
+channel,recent,6.577858043841822,significant shift
+loan_purpose,dev_holdout,8.351691624459327e-06,stable
+loan_purpose,out_of_time,0.10013581073531276,moderate shift
+loan_purpose,crisis,0.11681606970287199,moderate shift
+loan_purpose,recent,0.14435860836332365,moderate shift
+property_type,dev_holdout,2.0649190325600368e-05,stable
+property_type,out_of_time,0.012677326139651546,stable
+property_type,crisis,0.03822559213571881,stable
+property_type,recent,0.2156406558858593,moderate shift
+state,dev_holdout,0.0008431398417823886,stable
+state,out_of_time,0.03049821062468385,stable
+state,crisis,0.05645642319898197,stable
+state,recent,0.07008310663780243,stable

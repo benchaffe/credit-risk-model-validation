@@ -1,0 +1,55 @@
+# Credit Risk Model Validation
+
+**Question:** is a probability-of-default model trained on 1999-2004 Freddie Mac mortgages fit for purpose, and how does it behave in a crisis it was not trained on?
+
+**Verdict: approved with conditions, for ranking only. Not fit for absolute PD, provisioning or capital use.** Read the one-page [executive summary](reports/executive_summary.pdf), or the full [validation report](reports/validation_report.pdf) and [development document](reports/model_development.pdf).
+
+## Top three findings
+1. **Crisis under-prediction.** Observed 2006-08 default rate {obs_cr:.1f}%; predicted {pred_cr_s:.1f}% (scorecard) and {pred_cr_l:.1f}% (LightGBM): off by {ratio_cr_s:.1f}x and {ratio_cr_l:.1f}x. Every scorecard band is under-predicted. Ranking holds up better (AUC {auc_ho_s:.2f} in time, {auc_cr_s:.2f} in the crisis).
+2. **The error is concentrated.** California loans are under-predicted {seg_state_CA:.0f}x, Nevada {seg_state_NV:.0f}x and Florida {seg_state_FL:.0f}x. A single margin of conservatism would not fit.
+3. **Population drift.** Interest rate PSI is {psi_int_rate_rec:.1f} in 2016-19, and the scorecard under-predicts that period {ratio_rec_s:.1f}x.
+
+The challenger (LightGBM) ranks slightly better (AUC {auc_cr_l:.2f} in the crisis against {auc_cr_s:.2f}) but is only marginally better calibrated, and it behaves non-monotonically for individual loans, so the scorecard is recommended.
+
+## What this is
+- **Champion:** weight-of-evidence logistic scorecard. **Challenger:** LightGBM with SHAP.
+- **Data:** Freddie Mac Single Family Loan-Level Dataset, *sample files* (50,000 loans per year), 14 origination years. Development 1999-2004; test on 2005, 2006-08 (crisis) and 2016-19.
+- **Target:** 90+ days delinquent, REO, or a credit-event exit within 24 months, excluding COVID forbearance.
+
+## Honest limitations
+- The same person developed and validated the models, so this is a self-review. A real validation needs independence.
+- Sample files only, not the full dataset; about {bads_train:,} bad loans in training.
+- The models had to be refit once (v1.0 to v{version}) because the original run was not reproducible; the reason is logged in `reports/artifacts/FROZEN.json`. No change was made for performance reasons.
+- Fairness could only be tested on proxies; the data has no protected characteristics.
+
+## Reproduce
+1. Register with Freddie Mac's Clarity Data Intelligence (Single Family Loan-Level Dataset page) and accept the terms. The raw files are not in this repo (licence and size).
+2. Download the **sample** files for 1999-2008 and 2016-2019, plus the July 2026 General User Guide, File Layout and File Headers. Place them in `data/raw/` like this:
+   ```
+   data/raw/sample_1999/sample_orig_1999.txt, sample_perf_1999.txt  (one folder per year)
+   data/raw/file_headers_july_2026/origination_data_file_header.txt, performance_data_file_header.txt
+   data/raw/general_user_guide_july_2026.pdf, file_layout_july_2026.xlsx
+   ```
+3. Set up the environment and run everything:
+   ```bash
+   conda env create -f environment.yml && conda activate credit-risk-validation
+   make all
+   ```
+   `make all` runs the tests, builds the data and models, checks the models still match the frozen version, runs validation, then fills the report templates with computed numbers and renders PDFs. Rendering needs Google Chrome. About 3 minutes on a laptop.
+
+Individual steps: `make data`, `make models`, `make check`, `make validate`, `make report`, `make test`.
+
+Without conda (plain pip), the Makefile points LightGBM at scikit-learn's bundled OpenMP library on macOS.
+
+## Layout
+```
+src/ingest.py, target.py, features.py     data -> bad flag -> origination-only features
+src/scorecard.py, challenger.py           champion and challenger
+src/validate/                             ranking, calibration, stress, PSI, SHAP, fairness
+src/build_report.py, render.py            numbers -> templates -> PDFs
+reports/templates/                        report text; numbers are placeholders
+reports/artifacts/FROZEN.json             model hashes; changes need a new model version
+tests/                                    target logic, leakage, PSI, reproducibility
+```
+
+Model v{version}, frozen {frozen_date}.
