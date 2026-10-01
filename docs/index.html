@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Credit Risk Model Validation</title>
+<meta name="description" content="Interactive results from an independent validation of a mortgage probability-of-default model.">
+<style>
+:root{
+  color-scheme:light;
+  --surface:#fcfcfb; --panel:#ffffff; --border:#e3e2de;
+  --ink:#0b0b0b; --ink2:#52514e; --ink3:#7a7974; --grid:#ecebe7; --axis:#b9b8b2;
+  --s1:#2a78d6; --s2:#eb6834;
+  --seq0:#eef5fd; --seq1:#9ec5f4; --seq2:#3987e5; --seq3:#184f95; --seqink:#0b0b0b; --seqink-hi:#ffffff;
+  --accent:#184f95;
+}
+@media (prefers-color-scheme:dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --surface:#1a1a19; --panel:#222221; --border:#383835;
+    --ink:#ffffff; --ink2:#c3c2b7; --ink3:#9a998f; --grid:#2f2f2d; --axis:#5a5955;
+    --s1:#3987e5; --s2:#d95926;
+    --seq0:#1d2b3d; --seq1:#184f95; --seq2:#3987e5; --seq3:#9ec5f4; --seqink:#ffffff; --seqink-hi:#0b0b0b;
+    --accent:#6da7ec;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --surface:#1a1a19; --panel:#222221; --border:#383835;
+  --ink:#ffffff; --ink2:#c3c2b7; --ink3:#9a998f; --grid:#2f2f2d; --axis:#5a5955;
+  --s1:#3987e5; --s2:#d95926;
+  --seq0:#1d2b3d; --seq1:#184f95; --seq2:#3987e5; --seq3:#9ec5f4; --seqink:#ffffff; --seqink-hi:#0b0b0b;
+  --accent:#6da7ec;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 56px}
+h1{font-size:26px;line-height:1.2;margin:0 0 6px}
+h2{font-size:17px;margin:0 0 4px}
+p{margin:0}
+.lede{color:var(--ink2);max-width:720px}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+.links a{color:var(--accent);margin-right:14px;text-decoration:none;font-size:14px}
+.links a:hover{text-decoration:underline}
+button{font:inherit;color:inherit}
+.theme{border:1px solid var(--border);background:var(--panel);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:13px}
+.verdict{margin:22px 0 16px;border:1px solid var(--border);border-left:4px solid var(--accent);background:var(--panel);border-radius:8px;padding:14px 16px}
+.verdict b{font-size:16px}
+.verdict .sub{color:var(--ink2);margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:22px}
+.tile{border:1px solid var(--border);background:var(--panel);border-radius:8px;padding:14px 16px}
+.tile .n{font-size:34px;font-weight:650;line-height:1.1;letter-spacing:-.5px}
+.tile .l{color:var(--ink2);font-size:13px;margin-top:4px}
+.filters{position:sticky;top:0;z-index:5;background:var(--surface);padding:10px 0;display:flex;gap:18px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--border);margin-bottom:16px}
+.group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.group>span{font-size:12px;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;padding:7px 12px;cursor:pointer;font-size:13.5px;border-right:1px solid var(--border);min-height:36px}
+.seg button:last-child{border-right:0}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#0b0b0b}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])) .seg button[aria-pressed="true"]{color:#0b0b0b}}
+.seg button:focus-visible,.theme:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{border:1px solid var(--border);background:var(--panel);border-radius:10px;padding:16px;margin-bottom:16px}
+.card .why{color:var(--ink2);font-size:14px;margin:2px 0 10px;max-width:760px}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--ink2);margin:6px 0 4px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{fill:var(--ink2);font-size:14px}
+@media(max-width:560px){svg text{font-size:17px}}
+svg .t3{fill:var(--ink3)}
+svg .val{fill:var(--ink);font-weight:600}
+.grid line{stroke:var(--grid)} .axis line,.axis path{stroke:var(--axis)}
+#tip{position:fixed;pointer-events:none;z-index:20;background:var(--panel);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:12.5px;box-shadow:0 4px 14px rgba(0,0,0,.18);display:none;max-width:260px;line-height:1.4}
+#tip b{display:block;margin-bottom:2px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--border);text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{color:var(--ink2);font-weight:600}
+td.heat{text-align:center;font-variant-numeric:tabular-nums;font-weight:600;border:2px solid var(--panel)}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--accent);font-size:13px}
+.note{color:var(--ink3);font-size:12.5px;margin-top:8px}
+.foot{color:var(--ink2);font-size:13.5px;border-top:1px solid var(--border);padding-top:16px;margin-top:24px}
+.foot li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div>
+      <h1>Does a mortgage default model survive a crisis?</h1>
+      <p class="lede">An independent validation of two probability-of-default models trained on 1999&ndash;2004 Freddie Mac loans, then tested on 2005, the 2006&ndash;08 crisis and 2016&ndash;19. Explore the results below.</p>
+    </div>
+    <button class="theme" id="theme" aria-label="Toggle light or dark theme">Theme</button>
+  </div>
+  <p class="links" style="margin-top:10px">
+    <a href="https://github.com/benchaffe/credit-risk-model-validation">Code on GitHub</a><a href="https://github.com/benchaffe/credit-risk-model-validation/blob/main/reports/validation_report.pdf">Validation report (PDF)</a><a href="https://github.com/benchaffe/credit-risk-model-validation/blob/main/reports/executive_summary.pdf">Executive summary</a>
+  </p>
+
+  <div class="verdict" role="note">
+    <b>Verdict: approved with conditions, for ranking only.</b>
+    <div class="sub">Both models rank borrowers well but under-predict defaults badly when conditions change. Not fit for absolute PD, provisioning or capital use.</div>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="filters" role="group" aria-label="Chart filters">
+    <div class="group"><span>Period</span><div class="seg" id="f-sample"></div></div>
+    <div class="group"><span>Model</span><div class="seg" id="f-model"></div></div>
+  </div>
+
+  <section class="card">
+    <h2>Calibration: predicted vs observed default rate</h2>
+    <p class="why">Each dot is a tenth of loans, ranked by predicted risk. On the dashed line the model is right. Above it, the model is too optimistic. Switch the period to see the gap open up.</p>
+    <div class="legend" id="leg-cal"></div>
+    <svg id="cal" viewBox="0 0 700 420" role="img" aria-label="Calibration chart"></svg>
+    <details><summary>Show data table</summary><div id="cal-table"></div></details>
+    <p class="note">Bands are fixed from development-train PD deciles. Error bars are 95% Wilson intervals on the observed rate.</p>
+  </section>
+
+  <section class="card">
+    <h2>Where the models fail worst in the crisis (2006&ndash;08)</h2>
+    <p class="why">Observed &divide; predicted default rate for segments of at least 1,000 loans. 1&times; is perfect. Broker and correspondent loans were almost absent from the development data, so part of that gap is a segment the model never saw.</p>
+    <div class="legend" id="leg-seg"></div>
+    <svg id="seg" viewBox="0 0 700 380" role="img" aria-label="Under-prediction by segment"></svg>
+  </section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Ranking holds up better</h2>
+      <p class="why">AUC (higher is better, 0.5 is a coin toss) with 95% intervals. Ranking loses about 0.05&ndash;0.07 out of time.</p>
+      <div class="legend" id="leg-auc"></div>
+      <svg id="auc" viewBox="0 0 340 300" role="img" aria-label="AUC by period"></svg>
+    </section>
+    <section class="card">
+      <h2>Stress tests</h2>
+      <p class="why">Change in average predicted default rate when one input is shocked (hold-out loans). &ldquo;Wrong way&rdquo; is the share of loans where PD moved the opposite way.</p>
+      <div id="stress"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Population drift (PSI against development)</h2>
+    <p class="why">Above 0.10 is a moderate shift, above 0.25 significant. Interest rates and loan channel changed completely by 2016&ndash;19. Note the score itself barely moved in the crisis, yet it was 4&times; too low, so PSI alone would have missed it.</p>
+    <div id="psi"></div>
+  </section>
+
+  <div class="foot">
+    <b>Limitations to keep in mind</b>
+    <ul>
+      <li>One person developed and validated these models, so this is a self-review, not an independent one.</li>
+      <li>Based on Freddie Mac sample files (50,000 loans per year), not the full dataset.</li>
+      <li>The target excludes COVID-19 forbearance, a modelling choice that affects the 2016&ndash;19 results.</li>
+      <li>The data has no protected characteristics, so fairness could only be checked on proxies.</li>
+    </ul>
+    <p class="note">Source data: Freddie Mac Single Family Loan-Level Dataset (not redistributed). This page shows summary statistics only. Model v1.1, built 2026-10-01.</p>
+  </div>
+</div>
+<div id="tip" role="status"></div>
+
+<script>
+const D = {"bands":[{"model":"scorecard","sample":"dev_train","band":1,"n":20986,"bads":6,"pred_pd":0.0006306397373417,"obs_rate":0.0002859048889736,"obs_lo":0.0001310373646366,"obs_hi":0.0006236896267285,"binom_p":0.0518976639768516,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":2,"n":20987,"bads":29,"pred_pd":0.00116193294369,"obs_rate":0.0013818077857721,"obs_lo":0.0009623102751511,"obs_hi":0.0019838126663892,"binom_p":0.3600043137854956,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":3,"n":20987,"bads":35,"pred_pd":0.0017550015647644,"obs_rate":0.0016676990517939,"obs_lo":0.0011994189209191,"obs_hi":0.0023183819089437,"binom_p":0.8687625920555269,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":4,"n":20986,"bads":53,"pred_pd":0.0025255361943202,"obs_rate":0.0025254931859334,"obs_lo":0.001931455764462,"obs_hi":0.0033016280335595,"binom_p":1.0,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":5,"n":20987,"bads":75,"pred_pd":0.0035933385572423,"obs_rate":0.0035736408252727,"obs_lo":0.0028521263413779,"obs_hi":0.0044768604106349,"binom_p":1.0,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":6,"n":20987,"bads":104,"pred_pd":0.005181359647825,"obs_rate":0.0049554486110449,"obs_lo":0.0040917808094262,"obs_hi":0.0060003157361453,"binom_p":0.7003959894748326,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":7,"n":20986,"bads":142,"pred_pd":0.0077713279068622,"obs_rate":0.0067664157057085,"obs_lo":0.0057439566329905,"obs_hi":0.0079694198414655,"binom_p":0.0987438036845023,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":8,"n":20986,"bads":271,"pred_pd":0.0123647043179751,"obs_rate":0.012913370818641,"obs_lo":0.0114725324807693,"obs_hi":0.014532504165148,"binom_p":0.4723924386636855,"bias":"ok"},{"model":"scorecard","sample":"dev_train","band":9,"n":20987,"bads":508,"pred_pd":0.0221291041691168,"obs_rate":0.024205460523181,"obs_lo":0.0222116066957173,"obs_hi":0.0263734676635689,"binom_p":0.0435560264105187,"bias":"under-predicts"},{"model":"scorecard","sample":"dev_train","band":10,"n":20987,"bads":1282,"pred_pd":0.062247768364786,"obs_rate":0.0610854338399961,"obs_lo":0.0579249294165913,"obs_hi":0.0644065925362969,"binom_p":0.4929227900052588,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":1,"n":8896,"bads":4,"pred_pd":0.0006266680920976,"obs_rate":0.0004496402877697,"obs_lo":0.0001748669544831,"obs_hi":0.001155673580081,"binom_p":0.6716403182761892,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":2,"n":9052,"bads":8,"pred_pd":0.0011603131194509,"obs_rate":0.0008837825894829,"obs_lo":0.0004478949183776,"obs_hi":0.0017431328045454,"binom_p":0.5372203835270591,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":3,"n":8957,"bads":19,"pred_pd":0.0017501706842139,"obs_rate":0.002121245952886,"obs_lo":0.0013584595353394,"obs_hi":0.0033109233047723,"binom_p":0.374838256974621,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":4,"n":9032,"bads":19,"pred_pd":0.002527339051416,"obs_rate":0.0021036315323294,"obs_lo":0.0013471758104837,"obs_hi":0.0032834498525425,"binom_p":0.5280524046995221,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":5,"n":9112,"bads":38,"pred_pd":0.0035913992324648,"obs_rate":0.0041703248463564,"obs_lo":0.0030399525709971,"obs_hi":0.0057186024262726,"binom_p":0.3351276023186545,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":6,"n":9147,"bads":43,"pred_pd":0.0051783343810522,"obs_rate":0.0047009948617032,"obs_lo":0.0034920717266625,"obs_hi":0.0063257793439974,"binom_p":0.6095256494040704,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":7,"n":8925,"bads":65,"pred_pd":0.0077770656414844,"obs_rate":0.0072829131652661,"obs_lo":0.0057185119258499,"obs_hi":0.0092712936946237,"binom_p":0.6728467472855133,"bias":"ok"},{"model":"scorecard","sample":"dev_holdout","band":8,"n":8948,"bads":136,"pred_pd":0.0124108715165296,"obs_rate":0.0151989271345552,"obs_lo":0.0128640184426235,"obs_hi":0.0179499316165464,"binom_p":0.0192545038536625,"bias":"under-predicts"},{"model":"scorecard","sample":"dev_holdout","band":9,"n":9164,"bads":240,"pred_pd":0.0220996537555679,"obs_rate":0.026189436927106,"obs_lo":0.0231128946361904,"obs_hi":0.0296630608297068,"binom_p":0.0094366670292607,"bias":"under-predicts"},{"model":"scorecard","sample":"dev_holdout","band":10,"n":8901,"bads":564,"pred_pd":0.0621306771118134,"obs_rate":0.0633636670037074,"obs_lo":0.0584885515348195,"obs_hi":0.0686155173348613,"binom_p":0.6290576150172313,"bias":"ok"},{"model":"scorecard","sample":"out_of_time","band":1,"n":5575,"bads":10,"pred_pd":0.0006210558085733,"obs_rate":0.0017937219730941,"obs_lo":0.0009746178961312,"obs_hi":0.0032989574640295,"binom_p":0.0030648189824783,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":2,"n":5082,"bads":16,"pred_pd":0.0011599774528533,"obs_rate":0.0031483667847304,"obs_lo":0.001938897738385,"obs_hi":0.0051084314588121,"binom_p":0.0004185828556181,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":3,"n":5226,"bads":28,"pred_pd":0.0017517589835306,"obs_rate":0.0053578262533486,"obs_lo":0.00370956564571,"obs_hi":0.0077327694338074,"binom_p":4.1075053716223093e-07,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":4,"n":4976,"bads":33,"pred_pd":0.0025309392897709,"obs_rate":0.0066318327974276,"obs_lo":0.004726185379623,"obs_hi":0.0092986783831119,"binom_p":1.1921682581284308e-06,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":5,"n":5067,"bads":50,"pred_pd":0.0035863477674991,"obs_rate":0.0098677718571146,"obs_lo":0.0074932202661432,"obs_hi":0.012984958346259,"binom_p":5.507828398319203e-10,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":6,"n":5053,"bads":83,"pred_pd":0.0051964747115386,"obs_rate":0.0164258856125074,"obs_lo":0.0132706841515814,"obs_hi":0.0203158137921152,"binom_p":6.641123135566429e-19,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":7,"n":4901,"bads":108,"pred_pd":0.0077470893118894,"obs_rate":0.0220363191185472,"obs_lo":0.0182852361672176,"obs_hi":0.0265361093375995,"binom_p":8.559800607837214e-21,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":8,"n":5100,"bads":162,"pred_pd":0.0123770026508501,"obs_rate":0.0317647058823529,"obs_lo":0.0272928625626356,"obs_hi":0.0369414193163317,"binom_p":9.920693290216028e-26,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":9,"n":4998,"bads":240,"pred_pd":0.0219742487797679,"obs_rate":0.0480192076830732,"obs_lo":0.0424308537646302,"obs_hi":0.0543018376504677,"binom_p":1.0659806255678686e-27,"bias":"under-predicts"},{"model":"scorecard","sample":"out_of_time","band":10,"n":4022,"bads":329,"pred_pd":0.0546003805890618,"obs_rate":0.0818000994530084,"obs_lo":0.073723857826138,"obs_hi":0.090674463260315,"binom_p":1.181326970537475e-12,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":1,"n":16797,"bads":58,"pred_pd":0.0006251633585376,"obs_rate":0.0034529975590879,"obs_lo":0.002672270289266,"obs_hi":0.0044608009492605,"binom_p":2.2671491599068243e-24,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":2,"n":16178,"bads":116,"pred_pd":0.001160292284788,"obs_rate":0.0071702311781431,"obs_lo":0.0059819675255499,"obs_hi":0.0085924922812992,"binom_p":9.81424155266712e-52,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":3,"n":15825,"bads":187,"pred_pd":0.0017512400352939,"obs_rate":0.0118167456556082,"obs_lo":0.0102476157265177,"obs_hi":0.0136228360442549,"binom_p":2.049801152787684e-88,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":4,"n":15500,"bads":273,"pred_pd":0.0025230470534199,"obs_rate":0.0176129032258064,"obs_lo":0.0156583981257568,"obs_hi":0.0198064636927487,"binom_p":7.450194713859216e-132,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":5,"n":14802,"bads":354,"pred_pd":0.0035806249438429,"obs_rate":0.0239156870693149,"obs_lo":0.0215750425408122,"obs_hi":0.0265033861788357,"binom_p":6.718631697724506e-165,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":6,"n":14711,"bads":598,"pred_pd":0.0051780538669313,"obs_rate":0.0406498538508599,"obs_lo":0.0375767472934742,"obs_hi":0.0439628052627693,"binom_p":4.671023546e-315,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":7,"n":14526,"bads":732,"pred_pd":0.0077923186784898,"obs_rate":0.050392399834779,"obs_lo":0.046952317149241,"obs_hi":0.0540702294420445,"binom_p":0.0,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":8,"n":14301,"bads":1019,"pred_pd":0.0123815343988592,"obs_rate":0.071253758478428,"obs_lo":0.0671516537188412,"obs_hi":0.0755861449296946,"binom_p":0.0,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":9,"n":14290,"bads":1509,"pred_pd":0.0221298883494283,"obs_rate":0.1055983205038488,"obs_lo":0.1006649930808499,"obs_hi":0.110743646007469,"binom_p":0.0,"bias":"under-predicts"},{"model":"scorecard","sample":"crisis","band":10,"n":13069,"bads":2168,"pred_pd":0.0573899806422142,"obs_rate":0.165888744356875,"obs_lo":0.1596095363739414,"obs_hi":0.1723643169618168,"binom_p":0.0,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":1,"n":48208,"bads":52,"pred_pd":0.0005768289799431,"obs_rate":0.0010786591437105,"obs_lo":0.0008227163764936,"obs_hi":0.0014141116811178,"binom_p":3.680557600051302e-05,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":2,"n":31807,"bads":76,"pred_pd":0.0011553560948528,"obs_rate":0.0023894111359134,"obs_lo":0.0019096191077952,"obs_hi":0.0029893899143363,"binom_p":1.215411041461878e-08,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":3,"n":27470,"bads":85,"pred_pd":0.0017523418674279,"obs_rate":0.00309428467419,"obs_lo":0.0025033454012395,"obs_hi":0.0038241861660968,"binom_p":1.5615220855851174e-06,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":4,"n":22451,"bads":111,"pred_pd":0.0025074831120389,"obs_rate":0.0049441004855017,"obs_lo":0.0041074735358955,"obs_hi":0.0059501168948469,"binom_p":9.215860734828184e-11,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":5,"n":20602,"bads":145,"pred_pd":0.0035772279416499,"obs_rate":0.0070381516357635,"obs_lo":0.0059849129845285,"obs_hi":0.0082751985752924,"binom_p":1.6153072996107354e-13,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":6,"n":16825,"bads":195,"pred_pd":0.0051559776900752,"obs_rate":0.0115898959881129,"obs_lo":0.0100804471913274,"obs_hi":0.0133223281963736,"binom_p":1.048628019179951e-23,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":7,"n":14443,"bads":228,"pred_pd":0.0076724055511958,"obs_rate":0.0157861940040157,"obs_lo":0.013878273191079,"obs_hi":0.0179516321080833,"binom_p":1.029996733554083e-22,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":8,"n":10789,"bads":252,"pred_pd":0.0122554190111213,"obs_rate":0.0233571229956437,"obs_lo":0.0206722521353972,"obs_hi":0.0263813060304151,"binom_p":1.0403379503679488e-20,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":9,"n":5752,"bads":186,"pred_pd":0.0212272392169118,"obs_rate":0.032336578581363,"obs_lo":0.0280681187453067,"obs_hi":0.0372293001412727,"binom_p":4.6947297978042913e-08,"bias":"under-predicts"},{"model":"scorecard","sample":"recent","band":10,"n":1653,"bads":84,"pred_pd":0.0424174151087041,"obs_rate":0.0508166969147005,"obs_lo":0.041231697596583,"obs_hi":0.0624846745659701,"binom_p":0.0989167005571864,"bias":"ok"},{"model":"lightgbm","sample":"dev_train","band":1,"n":20987,"bads":1,"pred_pd":0.0006582665603485,"obs_rate":4.7648544336970506e-05,"obs_lo":8.41097124304913e-06,"obs_hi":0.0002698818247923,"binom_p":3.4603554714522364e-05,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":2,"n":20986,"bads":11,"pred_pd":0.0011338847507209,"obs_rate":0.0005241589631182,"obs_lo":0.0002927133586053,"obs_hi":0.0009384345696381,"binom_p":0.0053995529717135,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":3,"n":20987,"bads":17,"pred_pd":0.0016436509501701,"obs_rate":0.0008100252537284,"obs_lo":0.0005058187540793,"obs_hi":0.001296948410816,"binom_p":0.0015317535148459,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":4,"n":20986,"bads":29,"pred_pd":0.002300901514138,"obs_rate":0.001381873630039,"obs_lo":0.000962356137926,"obs_hi":0.0019839071630795,"binom_p":0.0038460359665291,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":5,"n":20987,"bads":51,"pred_pd":0.0032328748254406,"obs_rate":0.0024300757611854,"obs_lo":0.001848867317751,"obs_hi":0.0031934078809718,"binom_p":0.0385836911211788,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":6,"n":20987,"bads":71,"pred_pd":0.0046389188715708,"obs_rate":0.0033830466479249,"obs_lo":0.0026831699205114,"obs_hi":0.0042646982392863,"binom_p":0.0060339075782229,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":7,"n":20986,"bads":125,"pred_pd":0.0069821291566462,"obs_rate":0.0059563518536166,"obs_lo":0.0050018682069276,"obs_hi":0.007091677082142,"binom_p":0.0746331333977981,"bias":"ok"},{"model":"lightgbm","sample":"dev_train","band":8,"n":20986,"bads":198,"pred_pd":0.0113503200667455,"obs_rate":0.0094348613361288,"obs_lo":0.0082137087404377,"obs_hi":0.0108355822270558,"binom_p":0.0082656642472929,"bias":"over-predicts"},{"model":"lightgbm","sample":"dev_train","band":9,"n":20987,"bads":458,"pred_pd":0.0210002795574012,"obs_rate":0.0218230333063324,"obs_lo":0.0199320613473848,"obs_hi":0.0238890306092139,"binom_p":0.3995006435421774,"bias":"ok"},{"model":"lightgbm","sample":"dev_train","band":10,"n":20987,"bads":1544,"pred_pd":0.0660928568080162,"obs_rate":0.0735693524562824,"obs_lo":0.0701147329908116,"obs_hi":0.0771800567521589,"binom_p":1.7579220146168384e-05,"bias":"under-predicts"},{"model":"lightgbm","sample":"dev_holdout","band":1,"n":8922,"bads":3,"pred_pd":0.0006584087271162,"obs_rate":0.0003362474781439,"obs_lo":0.0001143588571586,"obs_hi":0.0009882374515188,"binom_p":0.3026777350084464,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":2,"n":9073,"bads":7,"pred_pd":0.0011325566224231,"obs_rate":0.0007715198941915,"obs_lo":0.0003737750309379,"obs_hi":0.001591842612979,"binom_p":0.4314218644163943,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":3,"n":8935,"bads":10,"pred_pd":0.0016459837605687,"obs_rate":0.0011191941801902,"obs_lo":0.0006080475612733,"obs_hi":0.0020591436774661,"binom_p":0.2934832297377078,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":4,"n":9051,"bads":20,"pred_pd":0.0023004468647584,"obs_rate":0.0022097005855706,"obs_lo":0.0014309349370333,"obs_hi":0.0034108504786276,"binom_p":1.0,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":5,"n":9159,"bads":37,"pred_pd":0.0032276016866869,"obs_rate":0.0040397423299486,"obs_lo":0.0029323483983523,"obs_hi":0.0055630074528281,"binom_p":0.1665521695736853,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":6,"n":8898,"bads":40,"pred_pd":0.0046287929303398,"obs_rate":0.0044953922229714,"obs_lo":0.0033031707931342,"obs_hi":0.0061152848217129,"binom_p":0.937705055734548,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":7,"n":9008,"bads":62,"pred_pd":0.006993674074916,"obs_rate":0.0068827708703374,"obs_lo":0.0053730933833799,"obs_hi":0.0088128639019767,"binom_p":0.9496279858178238,"bias":"ok"},{"model":"lightgbm","sample":"dev_holdout","band":8,"n":9135,"bads":137,"pred_pd":0.0113836854623433,"obs_rate":0.0149972632731253,"obs_lo":0.0127008863007829,"obs_hi":0.0177013913795742,"binom_p":0.001850540976706,"bias":"under-predicts"},{"model":"lightgbm","sample":"dev_holdout","band":9,"n":8916,"bads":220,"pred_pd":0.020949637466202,"obs_rate":0.0246747420367877,"obs_lo":0.0216535265528691,"obs_hi":0.0281053839641068,"binom_p":0.0161709854867198,"bias":"under-predicts"},{"model":"lightgbm","sample":"dev_holdout","band":10,"n":9037,"bads":600,"pred_pd":0.0657129751603249,"obs_rate":0.066393714728339,"obs_lo":0.0614425324117103,"obs_hi":0.0717133897095222,"binom_p":0.7825959405193019,"bias":"ok"},{"model":"lightgbm","sample":"out_of_time","band":1,"n":4377,"bads":3,"pred_pd":0.0006599355794039,"obs_rate":0.0006854009595613,"obs_lo":0.0002331207226567,"obs_hi":0.0020133882586312,"binom_p":0.7677743932273398,"bias":"ok"},{"model":"lightgbm","sample":"out_of_time","band":2,"n":4601,"bads":12,"pred_pd":0.0011370948980333,"obs_rate":0.0026081286676809,"obs_lo":0.0014926063943607,"obs_hi":0.0045535516320087,"binom_p":0.0076112059579961,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":3,"n":4670,"bads":18,"pred_pd":0.0016438583008523,"obs_rate":0.0038543897216274,"obs_lo":0.0024395124507363,"obs_hi":0.0060848671516875,"binom_p":0.0014707052002943,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":4,"n":4943,"bads":35,"pred_pd":0.0023044759783074,"obs_rate":0.0070807202103985,"obs_lo":0.0050957443630284,"obs_hi":0.0098312749294429,"binom_p":1.4363437054650569e-08,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":5,"n":5248,"bads":36,"pred_pd":0.0032298244387492,"obs_rate":0.0068597560975609,"obs_lo":0.0049591826474388,"obs_hi":0.0094817707887805,"binom_p":4.338113320675279e-05,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":6,"n":5109,"bads":63,"pred_pd":0.0046487789717536,"obs_rate":0.0123311802701115,"obs_lo":0.0096504335123601,"obs_hi":0.0157447596420688,"binom_p":1.547069159524686e-11,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":7,"n":5307,"bads":107,"pred_pd":0.0069910913091673,"obs_rate":0.0201620501224797,"obs_lo":0.0167130044910234,"obs_hi":0.0243052778090926,"binom_p":5.062495301699946e-21,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":8,"n":5283,"bads":132,"pred_pd":0.0113828360757684,"obs_rate":0.0249858035207268,"obs_lo":0.0211094670720243,"obs_hi":0.029552463105721,"binom_p":7.278870710739057e-16,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":9,"n":5548,"bads":236,"pred_pd":0.0209633070059125,"obs_rate":0.04253785147801,"obs_lo":0.0375362890448394,"obs_hi":0.0481724963066735,"binom_p":4.896428859215375e-23,"bias":"under-predicts"},{"model":"lightgbm","sample":"out_of_time","band":10,"n":4914,"bads":417,"pred_pd":0.0574870600534149,"obs_rate":0.0848595848595848,"obs_lo":0.0773884592716129,"obs_hi":0.0929792890511471,"binom_p":9.331218501663438e-15,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":1,"n":13165,"bads":24,"pred_pd":0.0006662936932691,"obs_rate":0.0018230155715913,"obs_lo":0.0012254039645619,"obs_hi":0.0027112824634986,"binom_p":1.62698293403606e-05,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":2,"n":14019,"bads":59,"pred_pd":0.0011367095749682,"obs_rate":0.0042085740780369,"obs_lo":0.0032643294068288,"obs_hi":0.0054244658798553,"binom_p":9.58727365306751e-17,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":3,"n":14696,"bads":130,"pred_pd":0.0016478276265082,"obs_rate":0.0088459444746869,"obs_lo":0.0074551593612278,"obs_hi":0.0104934422073768,"binom_p":3.3919423799037514e-51,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":4,"n":15299,"bads":209,"pred_pd":0.0023060353759994,"obs_rate":0.0136610235963134,"obs_lo":0.0119398832925664,"obs_hi":0.0156263433617041,"binom_p":1.1483894285135553e-88,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":5,"n":15759,"bads":303,"pred_pd":0.0032313279358198,"obs_rate":0.0192271083190557,"obs_lo":0.0171972999131447,"obs_hi":0.0214912573581533,"binom_p":2.247427870710094e-128,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":6,"n":15509,"bads":462,"pred_pd":0.0046373972896273,"obs_rate":0.0297891546843768,"obs_lo":0.0272277644515718,"obs_hi":0.0325834309389619,"binom_p":2.5149718416147138e-208,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":7,"n":15490,"bads":766,"pred_pd":0.0069815591643922,"obs_rate":0.0494512588766946,"obs_lo":0.046147229856424,"obs_hi":0.0529787093167246,"binom_p":0.0,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":8,"n":15579,"bads":958,"pred_pd":0.0113578338956139,"obs_rate":0.0614930354965017,"obs_lo":0.0578276534837908,"obs_hi":0.0653746256178589,"binom_p":0.0,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":9,"n":15728,"bads":1569,"pred_pd":0.0209309763458397,"obs_rate":0.0997583926754832,"obs_lo":0.0951721478306104,"obs_hi":0.1045401096332582,"binom_p":0.0,"bias":"under-predicts"},{"model":"lightgbm","sample":"crisis","band":10,"n":14755,"bads":2534,"pred_pd":0.0602767527986648,"obs_rate":0.1717383937648254,"obs_lo":0.1657384222877049,"obs_hi":0.1779092526084061,"binom_p":0.0,"bias":"under-predicts"},{"model":"lightgbm","sample":"recent","band":1,"n":23017,"bads":17,"pred_pd":0.0006557081545178,"obs_rate":0.0007385845244819,"obs_lo":0.0004612029648685,"obs_hi":0.0011825944539017,"binom_p":0.604691803151718,"bias":"ok"},{"model":"lightgbm","sample":"recent","band":2,"n":23221,"bads":34,"pred_pd":0.0011321398619864,"obs_rate":0.0014641918952672,"obs_lo":0.0010480200358519,"obs_hi":0.0020452884670572,"binom_p":0.1417373127327066,"bias":"ok"},{"model":"lightgbm","sample":"recent","band":3,"n":23555,"bads":48,"pred_pd":0.0016462017793199,"obs_rate":0.0020377839099978,"obs_lo":0.0015374292178408,"obs_hi":0.0027005380682926,"binom_p":0.1469411011015797,"bias":"ok"},{"model":"lightgbm","sample":"recent","band":4,"n":24121,"bads":68,"pred_pd":0.0023044318605897,"obs_rate":0.0028191202686455,"obs_lo":0.0022245587925368,"obs_hi":0.0035720222718544,"binom_p":0.1063386833960382,"bias":"ok"},{"model":"lightgbm","sample":"recent","band":5,"n":24274,"bads":93,"pred_pd":0.0032321583328164,"obs_rate":0.0038312597841311,"obs_lo":0.0031286947352091,"obs_hi":0.0046908471799172,"binom_p":0.1009133452325559,"bias":"ok"},{"model":"lightgbm","sample":"recent","band":6,"n":24363,"bads":147,"pred_pd":0.0046393067399739,"obs_rate":0.0060337396872306,"obs_lo":0.0051361243122848,"obs_hi":0.0070871094120235,"binom_p":0.0021416163312243,"bias":"under-predicts"},{"model":"lightgbm","sample":"recent","band":7,"n":22464,"bads":222,"pred_pd":0.0069373514427436,"obs_rate":0.0098824786324786,"obs_lo":0.008670111986693,"obs_hi":0.0112624479793697,"binom_p":5.792611708159633e-07,"bias":"under-predicts"},{"model":"lightgbm","sample":"recent","band":8,"n":18540,"bads":276,"pred_pd":0.0112348808948737,"obs_rate":0.0148867313915857,"obs_lo":0.0132413277644191,"obs_hi":0.016733130170985,"binom_p":6.719964737902637e-06,"bias":"under-predicts"},{"model":"lightgbm","sample":"recent","band":9,"n":12416,"bads":321,"pred_pd":0.0202834766671733,"obs_rate":0.025853737113402,"obs_lo":0.0232054686950498,"obs_hi":0.0287953233279337,"binom_p":2.246224436066628e-05,"bias":"under-predicts"},{"model":"lightgbm","sample":"recent","band":10,"n":4029,"bads":188,"pred_pd":0.0449775313645674,"obs_rate":0.0466617026557458,"obs_lo":0.0405696350029879,"obs_hi":0.0536174513432747,"binom_p":0.5946041426810205,"bias":"ok"}],"overall":[{"model":"scorecard","sample":"dev_train","n":209866,"mean_pred":0.0119361878532015,"obs_rate":0.0119361878532015,"ratio":1.0,"binom_p":1.0},{"model":"scorecard","sample":"dev_holdout","n":90134,"mean_pred":0.0118787741184636,"obs_rate":0.0126034570750216,"ratio":1.061006544053363,"binom_p":0.0456598374877997},{"model":"scorecard","sample":"out_of_time","n":50000,"mean_pred":0.0101211414624949,"obs_rate":0.02118,"ratio":2.0926493398481782,"binom_p":4.291156938515634e-103},{"model":"scorecard","sample":"crisis","n":149999,"mean_pred":0.0105453552846795,"obs_rate":0.0467603117354115,"ratio":4.434209229853627,"binom_p":0.0},{"model":"scorecard","sample":"recent","n":200000,"mean_pred":0.0038234361407369,"obs_rate":0.00707,"ratio":1.8491220304878373,"binom_p":3.275876827784206e-98},{"model":"lightgbm","sample":"dev_train","n":209866,"mean_pred":0.0119035314627899,"obs_rate":0.0119361878532015,"ratio":1.0027434203466157,"binom_p":0.8879515129466196},{"model":"lightgbm","sample":"dev_holdout","n":90134,"mean_pred":0.0118717790029576,"obs_rate":0.0126034570750216,"ratio":1.0616317126423724,"binom_p":0.0439517788336608},{"model":"lightgbm","sample":"out_of_time","n":50000,"mean_pred":0.0112784394008244,"obs_rate":0.02118,"ratio":1.877919386475734,"binom_p":4.369124250458097e-78},{"model":"lightgbm","sample":"crisis","n":149999,"mean_pred":0.011404886824267,"obs_rate":0.0467603117354115,"ratio":4.100024178750808,"binom_p":0.0},{"model":"lightgbm","sample":"recent","n":200000,"mean_pred":0.0056220882719694,"obs_rate":0.00707,"ratio":1.2575398424904785,"binom_p":7.670705346723459e-17}],"ranking":[{"sample":"dev_train","model":"scorecard","n":209866,"bad_rate":0.0119361878532015,"auc":0.8388420828108107,"auc_lo":0.8312363621346068,"auc_hi":0.8454364711036757,"gini":0.6776841656216215,"gini_lo":0.6624727242692137,"gini_hi":0.6908729422073514,"ks":0.5338808140442896,"ks_lo":0.5222049137348981,"ks_hi":0.5491268379497746,"lift_top10":5.113918660344421,"lift_lo":4.940986386963876,"lift_hi":5.279597980221193},{"sample":"dev_train","model":"lightgbm","n":209866,"bad_rate":0.0119361878532015,"auc":0.8803915079164062,"auc_lo":0.873874439960719,"auc_hi":0.8852111424445895,"gini":0.7607830158328124,"gini_lo":0.747748879921438,"gini_hi":0.7704222848891791,"ks":0.607796269864484,"ks_lo":0.5921118031900876,"ks_hi":0.6230246795345975,"lift_top10":6.163848877105219,"lift_lo":5.965564373503454,"lift_hi":6.339117748238155},{"sample":"dev_holdout","model":"scorecard","n":90134,"bad_rate":0.0126034570750216,"auc":0.8399594416427778,"auc_lo":0.8298149568449511,"auc_hi":0.8497208911424633,"gini":0.6799188832855556,"gini_lo":0.6596299136899022,"gini_hi":0.6994417822849266,"ks":0.5371522037684658,"ks_lo":0.5198393044422877,"ks_hi":0.562672364308303,"lift_top10":4.982615486550726,"lift_lo":4.700920831842521,"lift_hi":5.278743421375559},{"sample":"dev_holdout","model":"lightgbm","n":90134,"bad_rate":0.0126034570750216,"auc":0.8493868373842236,"auc_lo":0.8404591765593135,"auc_hi":0.8592358241455423,"gini":0.6987736747684472,"gini_lo":0.6809183531186269,"gini_hi":0.7184716482910847,"ks":0.5501442863568069,"ks_lo":0.534146816271408,"ks_hi":0.5731571983668776,"lift_top10":5.281924544046705,"lift_lo":5.026151403211294,"lift_hi":5.590029735796475},{"sample":"out_of_time","model":"scorecard","n":50000,"bad_rate":0.02118,"auc":0.778866795325562,"auc_lo":0.7655160324768782,"auc_hi":0.791449725718348,"gini":0.557733590651124,"gini_lo":0.5310320649537563,"gini_hi":0.5828994514366961,"ks":0.4260767705903385,"ks_lo":0.4044509112171441,"ks_hi":0.4543143556105767,"lift_top10":3.635505193578848,"lift_lo":3.342680127321266,"lift_hi":3.913908432216738},{"sample":"out_of_time","model":"lightgbm","n":50000,"bad_rate":0.02118,"auc":0.7918333919593573,"auc_lo":0.7806505623226581,"auc_hi":0.8044201177474644,"gini":0.5836667839187146,"gini_lo":0.5613011246453161,"gini_hi":0.6088402354949287,"ks":0.4442750525053591,"ks_lo":0.4263373423259081,"ks_hi":0.4758600359974967,"lift_top10":3.994334277620396,"lift_lo":3.698193457690421,"lift_hi":4.2655774740043855},{"sample":"crisis","model":"scorecard","n":149999,"bad_rate":0.0467603117354115,"auc":0.7791989128811551,"auc_lo":0.7741017218016328,"auc_hi":0.7842902600961755,"gini":0.5583978257623101,"gini_lo":0.5482034436032657,"gini_hi":0.5685805201923511,"ks":0.423062666298892,"ks_lo":0.4133098603087466,"ks_hi":0.4337322968648185,"lift_top10":3.4290623176798425,"lift_lo":3.3158793728475158,"lift_hi":3.532071816505974},{"sample":"crisis","model":"lightgbm","n":149999,"bad_rate":0.0467603117354115,"auc":0.7933961414912895,"auc_lo":0.7881214579361548,"auc_hi":0.7978010934145485,"gini":0.5867922829825789,"gini_lo":0.5762429158723097,"gini_hi":0.595602186829097,"ks":0.4452098196465461,"ks_lo":0.43711638322413,"ks_hi":0.4546695718230457,"lift_top10":3.652913787066842,"lift_lo":3.5489332384742096,"lift_hi":3.7480686794706144},{"sample":"recent","model":"scorecard","n":200000,"bad_rate":0.00707,"auc":0.7797039603233902,"auc_lo":0.767605768639106,"auc_hi":0.7908676622404989,"gini":0.5594079206467804,"gini_lo":0.535211537278212,"gini_hi":0.5817353244809977,"ks":0.4347999052024831,"ks_lo":0.4138504124206521,"ks_hi":0.4614905484991627,"lift_top10":3.9886845827439887,"lift_lo":3.69865748881838,"lift_hi":4.220238244239458},{"sample":"recent","model":"lightgbm","n":200000,"bad_rate":0.00707,"auc":0.7796884493168683,"auc_lo":0.7698136489061017,"auc_hi":0.79138415664187,"gini":0.5593768986337366,"gini_lo":0.5396272978122034,"gini_hi":0.58276831328374,"ks":0.4296276869831804,"ks_lo":0.414304133873721,"ks_hi":0.4545088639659514,"lift_top10":4.052333804809052,"lift_lo":3.8401540266593175,"lift_hi":4.308774153770855}],"segments":[{"key":"State: CA","model":"scorecard","n":13069,"obs":0.0611370418547708,"pred":0.0043280933825462,"ratio":14.1256291052582},{"key":"State: CA","model":"lightgbm","n":13069,"obs":0.0611370418547708,"pred":0.0046092199550643,"ratio":13.264075581291657},{"key":"State: NV","model":"scorecard","n":1398,"obs":0.1094420600858369,"pred":0.0101191487238108,"ratio":10.815342581961898},{"key":"Channel: Broker","model":"scorecard","n":6028,"obs":0.0736562707365627,"pred":0.007261064473884,"ratio":10.144004505328832},{"key":"State: AZ","model":"lightgbm","n":4064,"obs":0.0738188976377952,"pred":0.0073332886082636,"ratio":10.066274707177278},{"key":"State: NV","model":"lightgbm","n":1398,"obs":0.1094420600858369,"pred":0.0116226130006744,"ratio":9.4163042406631},{"key":"State: AZ","model":"scorecard","n":4064,"obs":0.0738188976377952,"pred":0.0078806497299615,"ratio":9.367108064344228},{"key":"State: VA","model":"lightgbm","n":4307,"obs":0.0359879266310657,"pred":0.0039714370221757,"ratio":9.061688862272366},{"key":"State: FL","model":"scorecard","n":9132,"obs":0.1037012702584318,"pred":0.0122493900777228,"ratio":8.465831327147164},{"key":"Channel: Broker","model":"lightgbm","n":6028,"obs":0.0736562707365627,"pred":0.00877583396449,"ratio":8.39307933976428},{"key":"State: VA","model":"scorecard","n":4307,"obs":0.0359879266310657,"pred":0.0046681999072774,"ratio":7.709165705385196},{"key":"Channel: Correspondent","model":"scorecard","n":10359,"obs":0.040061782025292,"pred":0.0052070047159043,"ratio":7.693824801603686},{"key":"State: FL","model":"lightgbm","n":9132,"obs":0.1037012702584318,"pred":0.0140668265608667,"ratio":7.372044420233636},{"key":"State: MA","model":"scorecard","n":3337,"obs":0.0431525322145639,"pred":0.0062553801292218,"ratio":6.898466811469712},{"key":"State: NJ","model":"scorecard","n":4042,"obs":0.0559129143988124,"pred":0.0084175413183121,"ratio":6.642428267880927},{"key":"State: ID","model":"lightgbm","n":1183,"obs":0.0473372781065088,"pred":0.0073433932096065,"ratio":6.446240417111608},{"key":"Property: Planned unit","model":"scorecard","n":23255,"obs":0.0412814448505697,"pred":0.0066121349907627,"ratio":6.243285248749581},{"key":"Property: Condo","model":"scorecard","n":12556,"obs":0.0402994584262504,"pred":0.0065759103187238,"ratio":6.128346719009245},{"key":"Channel: Correspondent","model":"lightgbm","n":10359,"obs":0.040061782025292,"pred":0.0066354674076601,"ratio":6.03752223679736},{"key":"State: MD","model":"scorecard","n":3392,"obs":0.053066037735849,"pred":0.0093092603435173,"ratio":5.700349520550496},{"key":"Property: Condo","model":"lightgbm","n":12556,"obs":0.0402994584262504,"pred":0.0071299500733586,"ratio":5.652137534150634},{"key":"Occupancy: Investor","model":"scorecard","n":9875,"obs":0.0498227848101265,"pred":0.0089805662254657,"ratio":5.547844485445307},{"key":"State: CT","model":"scorecard","n":1612,"obs":0.0514888337468982,"pred":0.0095813600175247,"ratio":5.373854406130554},{"key":"Purpose: No-cash refi","model":"scorecard","n":31238,"obs":0.0521480248415391,"pred":0.0099836521004715,"ratio":5.223341550440849},{"key":"State: IL","model":"scorecard","n":8054,"obs":0.0499130866650111,"pred":0.0096556612893666,"ratio":5.169307949935895},{"key":"Property: Planned unit","model":"lightgbm","n":23255,"obs":0.0412814448505697,"pred":0.0079903735310498,"ratio":5.16639737681273},{"key":"State: WA","model":"lightgbm","n":4684,"obs":0.0367207514944491,"pred":0.0072979747516047,"ratio":5.0316358639600205},{"key":"Purpose: Cash-out refi","model":"scorecard","n":52238,"obs":0.054213407864007,"pred":0.0107978907515655,"ratio":5.020740541956925},{"key":"State: MA","model":"lightgbm","n":3337,"obs":0.0431525322145639,"pred":0.008603227858557,"ratio":5.015853691663301},{"key":"State: WA","model":"scorecard","n":4684,"obs":0.0367207514944491,"pred":0.0073561252918657,"ratio":4.991860529490193},{"key":"State: MD","model":"lightgbm","n":3392,"obs":0.053066037735849,"pred":0.0108458129935285,"ratio":4.892767168999919},{"key":"Purpose: No-cash refi","model":"lightgbm","n":31238,"obs":0.0521480248415391,"pred":0.0107528975035444,"ratio":4.849671897676871},{"key":"State: IL","model":"lightgbm","n":8054,"obs":0.0499130866650111,"pred":0.0103389745207969,"ratio":4.827663185029679},{"key":"State: NJ","model":"lightgbm","n":4042,"obs":0.0559129143988124,"pred":0.011616160601252,"ratio":4.813373051400989},{"key":"State: NY","model":"scorecard","n":5431,"obs":0.0502669858221322,"pred":0.0105348338111423,"ratio":4.771502495745747},{"key":"State: OR","model":"scorecard","n":2827,"obs":0.0367881146091262,"pred":0.0078044993958223,"ratio":4.713705869311565},{"key":"State: MI","model":"scorecard","n":4835,"obs":0.0591520165460186,"pred":0.0126070677774911,"ratio":4.691972597436929},{"key":"Occupancy: Second home","model":"lightgbm","n":7917,"obs":0.0303145130731337,"pred":0.0065174196615011,"ratio":4.651305984207792},{"key":"State: MN","model":"scorecard","n":3506,"obs":0.03593839132915,"pred":0.0077527789228649,"ratio":4.635549612173042},{"key":"Borrowers: 2","model":"scorecard","n":80059,"obs":0.0307648109519229,"pred":0.0066691444624061,"ratio":4.613007129376736},{"key":"Channel: Retail","model":"scorecard","n":67848,"obs":0.0345772904138662,"pred":0.0075644288463333,"ratio":4.571037829330191},{"key":"First-time buyer: No","model":"scorecard","n":132969,"obs":0.0462438613511419,"pred":0.0101491223511756,"ratio":4.556439438902364},{"key":"Occupancy: Second home","model":"scorecard","n":7917,"obs":0.0303145130731337,"pred":0.0066865800363871,"ratio":4.533634968574007},{"key":"State: ID","model":"scorecard","n":1183,"obs":0.0473372781065088,"pred":0.010510793560322,"ratio":4.5036826034911135},{"key":"Occupancy: Investor","model":"lightgbm","n":9875,"obs":0.0498227848101265,"pred":0.0110861608762697,"ratio":4.494142324487979},{"key":"State: OR","model":"lightgbm","n":2827,"obs":0.0367881146091262,"pred":0.0083808653809944,"ratio":4.389536514039664},{"key":"Purpose: Cash-out refi","model":"lightgbm","n":52238,"obs":0.054213407864007,"pred":0.0123524365067792,"ratio":4.388883750525967},{"key":"Occupancy: Primary","model":"scorecard","n":132207,"obs":0.047516394744605,"pred":0.0108933112597826,"ratio":4.361978980627514},{"key":"Borrowers: 1","model":"scorecard","n":69875,"obs":0.0651305903398926,"pred":0.014992056482343,"ratio":4.3443399787481045},{"key":"Property: Single family","model":"scorecard","n":112074,"obs":0.0487356567981869,"pred":0.0115435085411866,"ratio":4.221910229831808},{"key":"First-time buyer: No","model":"lightgbm","n":132969,"obs":0.0462438613511419,"pred":0.0110680808580395,"ratio":4.178128254055146},{"key":"Borrowers: 1","model":"lightgbm","n":69875,"obs":0.0651305903398926,"pred":0.0156027413410149,"ratio":4.174304304377832},{"key":"State: MI","model":"lightgbm","n":4835,"obs":0.0591520165460186,"pred":0.0143829245974729,"ratio":4.112655680362207},{"key":"State: MO","model":"lightgbm","n":3972,"obs":0.0322255790533736,"pred":0.0078424964533344,"ratio":4.109097051573681},{"key":"Channel: Retail","model":"lightgbm","n":67848,"obs":0.0345772904138662,"pred":0.0084561630663593,"ratio":4.08900468717579},{"key":"Occupancy: Primary","model":"lightgbm","n":132207,"obs":0.047516394744605,"pred":0.0117213715509766,"ratio":4.053825487738751},{"key":"Borrowers: 2","model":"lightgbm","n":80059,"obs":0.0307648109519229,"pred":0.0077450260323859,"ratio":3.9722023945793703},{"key":"State: GA","model":"scorecard","n":5019,"obs":0.0623630205220163,"pred":0.0157295736970024,"ratio":3.9646987085162126},{"key":"Channel: Third party","model":"scorecard","n":65764,"obs":0.0579192263244328,"pred":0.0147626713776532,"ratio":3.923356745047312},{"key":"State: WI","model":"scorecard","n":4096,"obs":0.02734375,"pred":0.0070499805767054,"ratio":3.878556785014328},{"key":"Property: Manufactured","model":"lightgbm","n":1576,"obs":0.0520304568527918,"pred":0.0134205964787385,"ratio":3.876910905951203},{"key":"Property: Single family","model":"lightgbm","n":112074,"obs":0.0487356567981869,"pred":0.0125839286303326,"ratio":3.872849110150952},{"key":"State: GA","model":"lightgbm","n":5019,"obs":0.0623630205220163,"pred":0.0161316801476033,"ratio":3.865872615338302},{"key":"State: UT","model":"scorecard","n":2347,"obs":0.0391989774179804,"pred":0.0101959417019608,"ratio":3.844566648556024},{"key":"State: MN","model":"lightgbm","n":3506,"obs":0.03593839132915,"pred":0.0095350722794239,"ratio":3.769073823037793},{"key":"Channel: Third party","model":"lightgbm","n":65764,"obs":0.0579192263244328,"pred":0.015439303159981,"ratio":3.751414537578396},{"key":"First-time buyer: Yes","model":"scorecard","n":16989,"obs":0.0509152981340867,"pred":0.0136566299847965,"ratio":3.728247612388201},{"key":"State: CT","model":"lightgbm","n":1612,"obs":0.0514888337468982,"pred":0.013812653780636,"ratio":3.727656869173125},{"key":"First-time buyer: Yes","model":"lightgbm","n":16989,"obs":0.0509152981340867,"pred":0.0140478933817919,"ratio":3.6244080696170498},{"key":"State: NM","model":"lightgbm","n":1060,"obs":0.0415094339622641,"pred":0.0114719968720334,"ratio":3.618326820107157},{"key":"Purpose: Purchase","model":"scorecard","n":66523,"obs":0.0383777039520166,"pred":0.0106108143942971,"ratio":3.6168481066489178},{"key":"State: NY","model":"lightgbm","n":5431,"obs":0.0502669858221322,"pred":0.0139096073490965,"ratio":3.6138321205304993},{"key":"State: AR","model":"lightgbm","n":1286,"obs":0.0349922239502332,"pred":0.0097232375427578,"ratio":3.598824341825983},{"key":"Purpose: Purchase","model":"lightgbm","n":66523,"obs":0.0383777039520166,"pred":0.010966974253963,"ratio":3.499388533546368},{"key":"State: WI","model":"lightgbm","n":4096,"obs":0.02734375,"pred":0.0080608841608123,"ratio":3.392152703661262},{"key":"State: MO","model":"scorecard","n":3972,"obs":0.0322255790533736,"pred":0.0096899433343217,"ratio":3.325672601121483},{"key":"State: CO","model":"scorecard","n":3343,"obs":0.0221358061621298,"pred":0.0067134414486453,"ratio":3.2972367944902974},{"key":"State: AL","model":"lightgbm","n":2062,"obs":0.0426770126091173,"pred":0.0135621695917974,"ratio":3.1467688351964718},{"key":"State: NC","model":"lightgbm","n":5700,"obs":0.0308771929824561,"pred":0.0102672698556582,"ratio":3.00734210910409},{"key":"State: PA","model":"scorecard","n":5486,"obs":0.0359095880422894,"pred":0.0120119242229374,"ratio":2.9894950530671958},{"key":"State: UT","model":"lightgbm","n":2347,"obs":0.0391989774179804,"pred":0.013195371750264,"ratio":2.970661089347177},{"key":"State: AL","model":"scorecard","n":2062,"obs":0.0426770126091173,"pred":0.01467584761859,"ratio":2.907975996906512},{"key":"State: NM","model":"scorecard","n":1060,"obs":0.0415094339622641,"pred":0.01452217673151,"ratio":2.8583479412006763},{"key":"State: KY","model":"scorecard","n":2173,"obs":0.0326737229636447,"pred":0.0115668443042565,"ratio":2.824774165207779},{"key":"State: NC","model":"scorecard","n":5700,"obs":0.0308771929824561,"pred":0.0112903606961305,"ratio":2.734827860108881},{"key":"State: AR","model":"scorecard","n":1286,"obs":0.0349922239502332,"pred":0.0128170811965514,"ratio":2.73012423137714},{"key":"State: TN","model":"lightgbm","n":2927,"obs":0.0392893747864707,"pred":0.0144735797660712,"ratio":2.714558210303465},{"key":"State: TN","model":"scorecard","n":2927,"obs":0.0392893747864707,"pred":0.0147154804750382,"ratio":2.66993489292566},{"key":"State: KY","model":"lightgbm","n":2173,"obs":0.0326737229636447,"pred":0.0122818409927005,"ratio":2.660327794755179},{"key":"State: IA","model":"lightgbm","n":1471,"obs":0.0231135282121006,"pred":0.0088804358698964,"ratio":2.60274704425856},{"key":"State: KS","model":"lightgbm","n":1341,"obs":0.0320656226696495,"pred":0.0123618972899936,"ratio":2.5939078700811624},{"key":"State: IA","model":"scorecard","n":1471,"obs":0.0231135282121006,"pred":0.0089850473898715,"ratio":2.5724436621397766},{"key":"State: PA","model":"lightgbm","n":5486,"obs":0.0359095880422894,"pred":0.0140091167586578,"ratio":2.563301360172963},{"key":"State: KS","model":"scorecard","n":1341,"obs":0.0320656226696495,"pred":0.0125843935830389,"ratio":2.548046710241734},{"key":"State: OH","model":"scorecard","n":5023,"obs":0.0368305793350587,"pred":0.014502846845133,"ratio":2.53954135545592},{"key":"State: CO","model":"lightgbm","n":3343,"obs":0.0221358061621298,"pred":0.0087815091349908,"ratio":2.520729161907635},{"key":"State: OH","model":"lightgbm","n":5023,"obs":0.0368305793350587,"pred":0.0151726006521739,"ratio":2.4274401059769235},{"key":"State: OK","model":"lightgbm","n":1657,"obs":0.0211225105612552,"pred":0.0089858646260522,"ratio":2.3506375224055733},{"key":"State: SC","model":"lightgbm","n":2600,"obs":0.0411538461538461,"pred":0.0175157400033871,"ratio":2.349535112184127},{"key":"State: IN","model":"scorecard","n":3467,"obs":0.0357657917507931,"pred":0.0157873849334933,"ratio":2.265466503886598},{"key":"State: LA","model":"scorecard","n":1647,"obs":0.0394656952034001,"pred":0.0175103308430698,"ratio":2.2538520577993384},{"key":"Property: Manufactured","model":"scorecard","n":1576,"obs":0.0520304568527918,"pred":0.026759474785006,"ratio":1.9443751146396069},{"key":"State: SC","model":"scorecard","n":2600,"obs":0.0411538461538461,"pred":0.0216263130870983,"ratio":1.9029524814563648},{"key":"State: IN","model":"lightgbm","n":3467,"obs":0.0357657917507931,"pred":0.0188127977245033,"ratio":1.9011415672751824},{"key":"State: TX","model":"lightgbm","n":9621,"obs":0.0240099781727471,"pred":0.012803703210915,"ratio":1.8752370136382757},{"key":"State: TX","model":"scorecard","n":9621,"obs":0.0240099781727471,"pred":0.0137011655895268,"ratio":1.752404057586192},{"key":"State: OK","model":"scorecard","n":1657,"obs":0.0211225105612552,"pred":0.0135216928005624,"ratio":1.562120281299148},{"key":"State: LA","model":"lightgbm","n":1647,"obs":0.0394656952034001,"pred":0.047275365415958,"ratio":0.8348046568473111}],"stress":[{"shock":"Credit score -50","scorecard":"+83%","lightgbm":"+96%","wrong":"0%"},{"shock":"Credit score +50","scorecard":"-53%","lightgbm":"-51%","wrong":"13%"},{"shock":"LTV +10 pts","scorecard":"+14%","lightgbm":"+19%","wrong":"8%"},{"shock":"DTI +10 pts","scorecard":"+10%","lightgbm":"+16%","wrong":"6%"},{"shock":"Interest rate +1pt","scorecard":"+13%","lightgbm":"+25%","wrong":"23%"}],"psi":[{"name":"Scorecard score","dev_holdout":0.0001149901224404,"out_of_time":0.0058473475567498,"crisis":0.0047362013317578,"recent":0.5225455125199499},{"name":"LightGBM score","dev_holdout":9.717950215854576e-05,"out_of_time":0.0049200317278781,"crisis":0.0029908701674738,"recent":0.1677498525577455},{"name":"Interest rate","dev_holdout":0.0003069580264375,"out_of_time":2.62245346224838,"crisis":1.4480004702121896,"recent":6.574123081041538},{"name":"Original balance","dev_holdout":0.0001181766425036,"out_of_time":0.1535912880093996,"crisis":0.2898547437157728,"recent":0.8746493441075738},{"name":"Channel","dev_holdout":2.105996548886812e-05,"out_of_time":0.0082493490502518,"crisis":0.4888234044076852,"recent":6.577858043841822},{"name":"Credit score","dev_holdout":0.0001528933566591,"out_of_time":0.0478663732041342,"crisis":0.0805992357381001,"recent":0.3074843525051036},{"name":"Property type","dev_holdout":2.0649190325600368e-05,"out_of_time":0.0126773261396515,"crisis":0.0382255921357188,"recent":0.2156406558858593},{"name":"DTI","dev_holdout":0.0001656788645636,"out_of_time":0.0631144415305997,"crisis":0.1185462209928392,"recent":0.1858720888689714},{"name":"LTV","dev_holdout":0.0001041031552508,"out_of_time":0.0246344600197162,"crisis":0.0179800986175636,"recent":0.1318913715221688}],"tiles":{"gap":"4.4\u00d7","auc":"0.84","auc_cr":"0.78","psi":"6.6","ca":"14\u00d7","rise":"3.7\u00d7"}};
+const SAMPLES = [["dev_holdout","Hold-out"],["out_of_time","2005"],["crisis","2006–08"],["recent","2016–19"]];
+const MODELS = [["both","Both"],["scorecard","Scorecard"],["lightgbm","LightGBM"]];
+const COL = {scorecard:"var(--s1)", lightgbm:"var(--s2)"};
+const NAME = {scorecard:"Scorecard", lightgbm:"LightGBM"};
+const st = {sample:"crisis", model:"both"};
+const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const pct = (x,d=1) => (x*100).toFixed(d)+"%";
+const models = () => st.model==="both" ? ["scorecard","lightgbm"] : [st.model];
+
+function el(tag, attrs={}, parent, text){
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text!==undefined) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const tip = $("#tip");
+function showTip(ev, html){
+  tip.innerHTML = html; tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + 14, y = ev.clientY + 14;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - 14;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - 14;
+  tip.style.left = x+"px"; tip.style.top = y+"px";
+}
+const hideTip = () => tip.style.display = "none";
+function hover(node, html){
+  node.addEventListener("mousemove", e => showTip(e, html));
+  node.addEventListener("mouseleave", hideTip);
+  node.setAttribute("tabindex","0");
+  node.addEventListener("focus", () => { const r = node.getBoundingClientRect(); showTip({clientX:r.right,clientY:r.top}, html); });
+  node.addEventListener("blur", hideTip);
+}
+function legend(id, ms){
+  $(id).innerHTML = ms.map(m => `<span><i style="background:${COL[m]}"></i>${NAME[m]}</span>`).join("");
+}
+
+/* ---- filters ---- */
+function buildSeg(id, items, key){
+  const box = $(id); box.innerHTML = "";
+  for (const [v,label] of items){
+    const b = document.createElement("button");
+    b.textContent = label; b.setAttribute("aria-pressed", st[key]===v);
+    b.onclick = () => { st[key] = v; renderAll(); };
+    box.appendChild(b);
+  }
+}
+
+/* ---- tiles ---- */
+function tiles(){
+  const t = D.tiles;
+  $("#tiles").innerHTML = [
+    [t.gap, "crisis defaults vs scorecard prediction (observed ÷ predicted, 2006–08)"],
+    [t.auc, "scorecard AUC in time, and "+t.auc_cr+" in the crisis: ranking survives"],
+    [t.psi, "interest-rate PSI in 2016–19: the population changed completely"],
+    [t.ca, "California under-prediction in the crisis, the worst large state"],
+  ].map(([n,l]) => `<div class="tile"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
+}
+
+/* ---- calibration ---- */
+function calibration(){
+  const svg = $("#cal"); svg.innerHTML = "";
+  const ms = models();
+  const rows = D.bands.filter(r => r.sample===st.sample && ms.includes(r.model));
+  const W=700,H=420,m={l:56,r:16,t:12,b:46}, iw=W-m.l-m.r, ih=H-m.t-m.b;
+  let max = Math.max(...rows.map(r => Math.max(r.pred_pd, r.obs_hi)));
+  const step = [0.01,0.02,0.05,0.1,0.2][[0.04,0.1,0.25,0.5,1].findIndex(x=>max<=x)] ?? 0.2;
+  max = Math.ceil(max/step)*step;
+  const x = v => m.l + v/max*iw, y = v => m.t + ih - v/max*ih;
+  const g = el("g",{class:"grid"},svg);
+  for (let v=0; v<=max+1e-9; v+=step){
+    el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v)},g);
+    el("text",{x:m.l-8,y:y(v)+4,"text-anchor":"end",class:"t3"},svg,pct(v,0));
+    el("text",{x:x(v),y:H-m.b+18,"text-anchor":"middle",class:"t3"},svg,pct(v,0));
+  }
+  el("text",{x:m.l+iw/2,y:H-6,"text-anchor":"middle"},svg,"Predicted default rate (24 months)");
+  el("text",{x:14,y:m.t+ih/2,"text-anchor":"middle",transform:`rotate(-90 14 ${m.t+ih/2})`},svg,"Observed default rate");
+  el("line",{x1:x(0),y1:y(0),x2:x(max),y2:y(max),stroke:"var(--ink3)","stroke-width":1.5,"stroke-dasharray":"5 4"},svg);
+  el("text",{x:x(max)-6,y:y(max)+14,"text-anchor":"end",class:"t3"},svg,"perfectly calibrated");
+  for (const mo of ms){
+    for (const r of rows.filter(r => r.model===mo)){
+      el("line",{x1:x(r.pred_pd),x2:x(r.pred_pd),y1:y(r.obs_lo),y2:y(r.obs_hi),stroke:COL[mo],"stroke-width":2,opacity:.55},svg);
+      const c = el("circle",{cx:x(r.pred_pd),cy:y(r.obs_rate),r:5.5,fill:COL[mo],stroke:"var(--panel)","stroke-width":2},svg);
+      const h = el("circle",{cx:x(r.pred_pd),cy:y(r.obs_rate),r:13,fill:"transparent"},svg);
+      hover(h, `<b>${NAME[mo]} · band ${r.band} of 10</b>Predicted ${pct(r.pred_pd,2)}<br>Observed ${pct(r.obs_rate,2)} (${pct(r.obs_lo,2)}–${pct(r.obs_hi,2)})<br>${r.n.toLocaleString()} loans, ${r.bads} defaults<br>${r.bias==="ok"?"Within sampling error":"Model "+r.bias.replace("-"," ")}`);
+    }
+  }
+  const o = D.overall.filter(r => r.sample===st.sample && ms.includes(r.model));
+  legend("#leg-cal", ms);
+  $("#leg-cal").innerHTML += `<span style="margin-left:auto;color:var(--ink)"><b>${SAMPLES.find(s=>s[0]===st.sample)[1]}</b>: ` + o.map(r => `${NAME[r.model]} ${r.ratio.toFixed(2)}× (observed ÷ predicted)`).join(" · ") + `</span>`;
+  $("#cal-table").innerHTML = `<table><tr><th>Model</th><th>Band</th><th>Loans</th><th>Predicted</th><th>Observed</th><th>95% interval</th><th>Result</th></tr>` +
+    rows.map(r => `<tr><td>${NAME[r.model]}</td><td>${r.band}</td><td>${r.n.toLocaleString()}</td><td>${pct(r.pred_pd,2)}</td><td>${pct(r.obs_rate,2)}</td><td>${pct(r.obs_lo,2)}–${pct(r.obs_hi,2)}</td><td>${r.bias}</td></tr>`).join("") + `</table>`;
+}
+
+/* ---- segments ---- */
+function segments(){
+  const svg = $("#seg"); svg.innerHTML = "";
+  const ms = models(), base = ms[0];
+  const top = D.segments.filter(r => r.model===base).sort((a,b) => b.ratio-a.ratio).slice(0,10).map(r => r.key);
+  const W=700,H=380,m={l:130,r:56,t:8,b:30}, iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const max = Math.ceil(Math.max(...D.segments.filter(r=>top.includes(r.key)&&ms.includes(r.model)).map(r=>r.ratio))/2)*2;
+  const x = v => m.l + v/max*iw;
+  const band = ih/top.length, bh = Math.min(16, (band-8)/ms.length);
+  const g = el("g",{class:"grid"},svg);
+  for (let v=0; v<=max; v+=2){ el("line",{x1:x(v),x2:x(v),y1:m.t,y2:H-m.b},g); el("text",{x:x(v),y:H-m.b+16,"text-anchor":"middle",class:"t3"},svg,v+"×"); }
+  el("line",{x1:x(1),x2:x(1),y1:m.t,y2:H-m.b,stroke:"var(--ink3)","stroke-width":1.5,"stroke-dasharray":"5 4"},svg);
+  top.forEach((key,i) => {
+    const y0 = m.t + i*band + (band - bh*ms.length)/2;
+    el("text",{x:m.l-10,y:y0+bh*ms.length/2+4,"text-anchor":"end"},svg,key);
+    ms.forEach((mo,j) => {
+      const r = D.segments.find(s => s.key===key && s.model===mo); if (!r) return;
+      const w = x(r.ratio)-x(0);
+      const rect = el("path",{d:`M${x(0)},${y0+j*bh} h${Math.max(w-4,0)} a4,4 0 0 1 4,4 v${bh-8} a4,4 0 0 1 -4,4 h${-Math.max(w-4,0)} z`,fill:COL[mo]},svg);
+      el("text",{x:x(r.ratio)+6,y:y0+j*bh+bh/2+4,class:"val"},svg,r.ratio.toFixed(1)+"×");
+      const h = el("rect",{x:m.l,y:y0+j*bh-2,width:iw,height:bh+4,fill:"transparent"},svg);
+      hover(h, `<b>${key} · ${NAME[mo]}</b>${r.n.toLocaleString()} loans<br>Observed ${pct(r.obs,1)}, predicted ${pct(r.pred,1)}<br>${r.ratio.toFixed(1)}× under-predicted`);
+    });
+  });
+  legend("#leg-seg", ms);
+}
+
+/* ---- AUC ---- */
+function aucChart(){
+  const svg = $("#auc"); svg.innerHTML = "";
+  const ms = models();
+  const W=340,H=300,m={l:44,r:8,t:10,b:40}, iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const lo=0.70, hi=0.90, y = v => m.t + ih - (v-lo)/(hi-lo)*ih;
+  const periods = [["dev_train","Train","Train"],["dev_holdout","Hold-out","Hold-out"],["out_of_time","2005","2005"],["crisis","2006–08","Crisis"],["recent","2016–19","Recent"]];
+  const g = el("g",{class:"grid"},svg);
+  for (let v=lo; v<=hi+1e-9; v+=0.05){ el("line",{x1:m.l,x2:W-m.r,y1:y(v),y2:y(v)},g); el("text",{x:m.l-6,y:y(v)+4,"text-anchor":"end",class:"t3"},svg,v.toFixed(2)); }
+  const gw = iw/periods.length;
+  periods.forEach(([k,label,short],i) => {
+    const cx = m.l + gw*i + gw/2;
+    el("text",{x:cx,y:H-m.b+16,"text-anchor":"middle",class:"t3"},svg,short);
+    ms.forEach((mo,j) => {
+      const r = D.ranking.find(q => q.sample===k && q.model===mo);
+      const px = cx + (ms.length===1 ? 0 : (j-0.5)*16);
+      el("line",{x1:px,x2:px,y1:y(r.auc_lo),y2:y(r.auc_hi),stroke:COL[mo],"stroke-width":2,opacity:.6},svg);
+      el("circle",{cx:px,cy:y(r.auc),r:5,fill:COL[mo],stroke:"var(--panel)","stroke-width":2},svg);
+      const h = el("circle",{cx:px,cy:y(r.auc),r:12,fill:"transparent"},svg);
+      hover(h, `<b>${NAME[mo]} · ${label}</b>AUC ${r.auc.toFixed(3)} (${r.auc_lo.toFixed(3)}–${r.auc_hi.toFixed(3)})<br>Gini ${r.gini.toFixed(3)}, KS ${r.ks.toFixed(3)}<br>${r.n.toLocaleString()} loans`);
+    });
+  });
+  legend("#leg-auc", ms);
+}
+
+/* ---- stress ---- */
+function stress(){
+  const rows = D.stress;
+  $("#stress").innerHTML = `<table><tr><th>Shock</th><th>Scorecard</th><th>LightGBM</th><th>LightGBM wrong way</th></tr>` +
+    rows.map(r => `<tr><td>${r.shock}</td><td>${r.scorecard}</td><td>${r.lightgbm}</td><td>${r.wrong}</td></tr>`).join("") + `</table><p class="note">The scorecard never moves the wrong way. Shocks to borrower attributes move PD by tens of percent, nowhere near the ${D.tiles.rise} rise in actual crisis defaults, because the crisis was a macro shock the models cannot see.</p>`;
+}
+
+/* ---- PSI heatmap ---- */
+function psi(){
+  const cols = [["out_of_time","2005"],["crisis","2006–08"],["recent","2016–19"]];
+  const cell = v => {
+    const k = v<0.1 ? 0 : v<0.25 ? 1 : v<1 ? 2 : 3;
+    const bg = ["var(--seq0)","var(--seq1)","var(--seq2)","var(--seq3)"][k];
+    const ink = k<2 ? "var(--seqink)" : (k===2 ? "#fff" : "var(--seqink-hi)");
+    const flag = ["stable","moderate shift","significant shift","extreme shift"][k];
+    return `<td class="heat" style="background:${bg};color:${ink}" title="${flag}">${v.toFixed(2)}<span style="font-weight:400;font-size:11px;display:block">${flag}</span></td>`;
+  };
+  $("#psi").innerHTML = `<table><tr><th>Variable</th>${cols.map(c=>`<th style="text-align:center">${c[1]}</th>`).join("")}</tr>` +
+    D.psi.map(r => `<tr><td>${r.name}</td>${cols.map(c => cell(r[c[0]])).join("")}</tr>`).join("") + `</table>`;
+}
+
+function renderAll(){
+  buildSeg("#f-sample", SAMPLES, "sample"); buildSeg("#f-model", MODELS, "model");
+  calibration(); segments(); aucChart();
+}
+const root = document.documentElement;
+$("#theme").onclick = () => {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const cur = root.dataset.theme || (dark ? "dark" : "light");
+  root.dataset.theme = cur==="dark" ? "light" : "dark";
+};
+tiles(); stress(); psi(); renderAll();
+</script>
+</body>
+</html>

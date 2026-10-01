@@ -5,8 +5,8 @@ PYTHON ?= python3
 OMP ?= $(shell $(PYTHON) -c "import sklearn,os;print(os.path.join(os.path.dirname(sklearn.__file__),'.dylibs'))")
 export DYLD_FALLBACK_LIBRARY_PATH := $(OMP)
 
-.PHONY: all data models freeze check validate report test clean-processed
-all: test data models check validate report
+.PHONY: dashboard all data models freeze check validate report test clean-processed
+all: test data models check validate report dashboard
 
 data:        ## raw .txt -> Parquet -> bad flag -> modelling table -> bad-rate chart
 	$(PYTHON) -m src.ingest
@@ -27,6 +27,9 @@ check:       ## fail if rebuilt models differ from the frozen version
 
 validate:    ## ranking, calibration, PSI, stress, SHAP, fairness -> reports/tables, reports/figures
 	$(PYTHON) -m src.validate
+
+dashboard:   ## static interactive page -> docs/index.html (GitHub Pages)
+	$(PYTHON) -m src.dashboard
 
 report:      ## fill templates with computed numbers, render PDFs (needs Google Chrome)
 	$(PYTHON) -m src.build_report

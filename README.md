@@ -4,6 +4,8 @@
 
 **Verdict: approved with conditions, for ranking only. Not fit for absolute PD, provisioning or capital use.** Read the one-page [executive summary](reports/executive_summary.pdf), or the full [validation report](reports/validation_report.pdf) and [development document](reports/model_development.pdf).
 
+**Interactive dashboard:** https://benchaffe.co.uk/credit-risk-model-validation/ (GitHub Pages; built by `make dashboard` into `docs/`, summary statistics only).
+
 ## Top three findings
 1. **Crisis under-prediction.** Observed 2006-08 default rate 4.7%; predicted 1.1% (scorecard) and 1.1% (LightGBM): off by 4.4x and 4.1x. Every scorecard band is under-predicted. Ranking holds up better (AUC 0.84 in time, 0.78 in the crisis).
 2. **The error is concentrated.** California loans are under-predicted 14x, Nevada 11x and Florida 8x. A single margin of conservatism would not fit.
@@ -47,6 +49,7 @@ src/ingest.py, target.py, features.py     data -> bad flag -> origination-only f
 src/scorecard.py, challenger.py           champion and challenger
 src/validate/                             ranking, calibration, stress, PSI, SHAP, fairness
 src/build_report.py, render.py            numbers -> templates -> PDFs
+src/dashboard.py, dashboard_template.html static interactive dashboard -> docs/index.html
 reports/templates/                        report text; numbers are placeholders
 reports/artifacts/FROZEN.json             model hashes; changes need a new model version
 tests/                                    target logic, leakage, PSI, reproducibility
